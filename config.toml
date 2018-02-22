@@ -1,0 +1,5 @@
+ChannelName = "#"
+ServerName = "irc.chat.twitch.tv:6667"
+# Oauth from TWitch here
+BotOAuth = "oauth:"
+BotName = "#"
