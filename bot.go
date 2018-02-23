@@ -51,6 +51,11 @@ func CreateBot() *BotInfo {
 	}
 }
 
+// All "Load" functions read the files for various chat features, like commands/bannable words.
+
+/* Goofs serve no real purpose. Some chats like to have the bot 'repeat' what the user
+types in, perhaps for a specific emote.*/
+
 func LoadGoofs() Goof {
 	var goofs Goof
 	_, gooferr := toml.DecodeFile("goofs.toml", &goofs)
@@ -79,9 +84,9 @@ func LoadCustomCommands() CustomCommand {
 	return customcommand
 }
 
-func BotSendMsg(channel string, message string) {
+func BotSendMsg(conn net.Conn, channel string, message string) {
 	fmt.Println("reached function")
-	//fmt.Fprintf(BotInfo.conn, "PRIVMSG %s :%s\r\n", channel, message)
+	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
 func (bot *BotInfo) Connect() {
@@ -113,13 +118,18 @@ func main() {
 		if err != nil {
 			break
 		}
+
+		// When Twitch servers send a ping ,respond with pong to avoid disconnections.
 		if strings.Contains(line, "PING") {
 			pong := strings.Split(line, "PING")
 			fmt.Fprintf(irc.conn, "PONG %s\r\n", pong[1])
+
+			// Parse the data received from each chat message into something readable.
 		} else if strings.Contains(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName) {
 			userdata := strings.Split(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName)
 			username := strings.Split(userdata[0], "@")
 			usermessage := strings.Replace(userdata[1], " :", "", 1)
+			// Display the whole cleaned up message
 			fmt.Printf(username[1] + ": " + usermessage + "\n")
 
 			// Make variables to load the different toml files
@@ -127,35 +137,24 @@ func main() {
 			badwords := LoadBadWords()
 			customcommand := LoadCustomCommands()
 
-			if usermessage == "hi" {
-				BotSendMsg(irc.ChannelName, usermessage)
-			}
 			// Check for occurences of values from arrays/maps etc
 			for _, v := range goofs.RepeatWords {
 				if usermessage == v {
 					// If value is found, because it's a goof, repeat it in chat.
-					fmt.Fprintf(irc.conn, "PRIVMSG %s :%s\r\n", irc.ChannelName, v)
+					BotSendMsg(irc.conn, irc.ChannelName, usermessage)
 				}
 			}
 
 			for _, v := range badwords.BannableText {
 				if usermessage == v {
-					fmt.Fprintf(irc.conn, "PRIVMSG %s :%s\r\n", irc.ChannelName, "/ban "+username[1])
 					fmt.Println(username[1], "has been banned.")
+					BotSendMsg(irc.conn, irc.ChannelName, usermessage)
 				}
 			}
 
-			/*for _, v := range badwords.TimeoutText {
-				if usermessage == v {
-					connect.Privmsg(genconfig.ChannelName, "/timeout "+event.Nick)
-					connect.Privmsg(genconfig.ChannelName, "@"+event.Nick+" please watch your language.")
-					fmt.Println(event.Nick + " has been timed out.")
-				}
-			}*/
-
 			for _, v := range customcommand.Command {
 				if usermessage == v.ComKey {
-					fmt.Fprintf(irc.conn, "PRIVMSG %s :%s\r\n", irc.ChannelName, v.ComResponse)
+					BotSendMsg(irc.conn, irc.ChannelName, v.ComResponse)
 				}
 			}
 			CheckForGoof := strings.Contains(usermessage, "!addgoof")
