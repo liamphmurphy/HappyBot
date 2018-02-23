@@ -14,3 +14,11 @@ Edit config.toml with the information needed then execute the below commands.
 Then
 
 `go run bot.go`
+
+<h1> Building it </h1>
+
+Though you can just keep using go run, if you want an easy executable, you can build it as well.
+
+`go build bot.go`
+
+<b> This will build a executable based off of your OS. Exe for Windows, sh for Linux etc.
