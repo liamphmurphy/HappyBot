@@ -99,7 +99,31 @@ func (bot *BotInfo) Connect() {
 	fmt.Printf("Connected to: %s\n", bot.ServerName)
 }
 
+func CheckConfigs() {
+	if _, err := os.Stat("./config.toml"); err == nil {
+		fmt.Println("Main Config file loaded....")
+
+	}
+
+	if _, err := os.Stat("./commands.toml"); err == nil {
+		fmt.Println("Commands file loaded....")
+
+	}
+
+	if _, err := os.Stat("./goofs.toml"); err == nil {
+		fmt.Println("Goofs file loaded....")
+
+	}
+
+	if _, err := os.Stat("./badwords.toml"); err == nil {
+		fmt.Println("Banned word file loaded....")
+
+	}
+	fmt.Printf("\n")
+}
+
 func main() {
+	CheckConfigs()
 	irc := CreateBot()
 	irc.Connect()
 
