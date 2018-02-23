@@ -20,7 +20,7 @@ type BotInfo struct {
 	conn        net.Conn
 }
 
-type CustomCommands struct {
+type CustomCommand struct {
 	Command []struct {
 		ComKey      string
 		ComResponse string
@@ -51,9 +51,37 @@ func CreateBot() *BotInfo {
 	}
 }
 
-func BotSendMsg(irc, connfunc string, channel string, message string) {
+func LoadGoofs() Goof {
+	var goofs Goof
+	_, gooferr := toml.DecodeFile("goofs.toml", &goofs)
+	if gooferr != nil {
+		log.Fatal(gooferr)
+	}
+
+	return goofs
+}
+
+func LoadBadWords() BadWord {
+	var badwords BadWord
+	_, worderr := toml.DecodeFile("badwords.toml", &badwords)
+	if worderr != nil {
+		log.Fatal(worderr)
+	}
+	return badwords
+}
+
+func LoadCustomCommands() CustomCommand {
+	var customcommand CustomCommand
+	_, comerr := toml.DecodeFile("commands.toml", &customcommand)
+	if comerr != nil {
+		log.Fatal(comerr)
+	}
+	return customcommand
+}
+
+func BotSendMsg(channel string, message string) {
 	fmt.Println("reached function")
-	//	fmt.Fprintf(irc.c, "PRIVMSG %s :%s\r\n", irc.ChannelName, v)
+	//fmt.Fprintf(BotInfo.conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
 func (bot *BotInfo) Connect() {
@@ -67,28 +95,9 @@ func (bot *BotInfo) Connect() {
 }
 
 func main() {
-	var badwords BadWord
-	_, worderr := toml.DecodeFile("badwords.toml", &badwords)
-	if worderr != nil {
-		log.Fatal(worderr)
-	}
-
-	var goofs Goof
-	_, gooferr := toml.DecodeFile("goofs.toml", &goofs)
-	if gooferr != nil {
-		log.Fatal(gooferr)
-	}
-
-	var customcommands CustomCommands
-	_, comerr := toml.DecodeFile("commands.toml", &customcommands)
-	if comerr != nil {
-		log.Fatal(comerr)
-	}
-
 	irc := CreateBot()
 	irc.Connect()
 
-	//	fmt.Fprintf(irc.conn, "USER %s 8 * :%s\r\n", irc.BotName, irc.BotName)
 	fmt.Fprintf(irc.conn, "PASS %s\r\n", irc.BotOAuth)
 	fmt.Fprintf(irc.conn, "NICK %s\r\n", irc.BotName)
 	fmt.Fprintf(irc.conn, "JOIN %s\r\n", irc.ChannelName)
@@ -113,9 +122,18 @@ func main() {
 			usermessage := strings.Replace(userdata[1], " :", "", 1)
 			fmt.Printf(username[1] + ": " + usermessage + "\n")
 
+			// Make variables to load the different toml files
+			goofs := LoadGoofs()
+			badwords := LoadBadWords()
+			customcommand := LoadCustomCommands()
+
+			if usermessage == "hi" {
+				BotSendMsg(irc.ChannelName, usermessage)
+			}
+			// Check for occurences of values from arrays/maps etc
 			for _, v := range goofs.RepeatWords {
 				if usermessage == v {
-					//connect.Privmsg(genconfig.ChannelName, v)
+					// If value is found, because it's a goof, repeat it in chat.
 					fmt.Fprintf(irc.conn, "PRIVMSG %s :%s\r\n", irc.ChannelName, v)
 				}
 			}
@@ -135,7 +153,7 @@ func main() {
 				}
 			}*/
 
-			for _, v := range customcommands.Command {
+			for _, v := range customcommand.Command {
 				if usermessage == v.ComKey {
 					fmt.Fprintf(irc.conn, "PRIVMSG %s :%s\r\n", irc.ChannelName, v.ComResponse)
 				}
