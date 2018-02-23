@@ -1,7 +1,9 @@
-This is a simple bot written in Golang.
+This is a simple Twitch bot written in Golang.
 
 Just a little side-project because I got interested in Go and wanted to try it out by recreating a project I had done before.
 It seems to run very fast, and can honestly be used in production for some very basic botting.
+
+The name 'HappyBot' came to be because I've spent a fair bit of time watching the BobRoss Twitch stream while working on this bot.
 
 Main things to be worked on is the capability of adding commands from chat, and have the bot update the list of commands when a new one is added.
 
