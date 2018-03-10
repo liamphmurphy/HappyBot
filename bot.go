@@ -85,7 +85,6 @@ func LoadCustomCommands() CustomCommand {
 }
 
 func BotSendMsg(conn net.Conn, channel string, message string) {
-	fmt.Println("reached function")
 	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
@@ -101,25 +100,33 @@ func (bot *BotInfo) Connect() {
 
 func CheckConfigs() {
 	if _, err := os.Stat("./config.toml"); err == nil {
-		fmt.Println("Main Config file loaded....")
+		fmt.Println("config.toml loaded....")
 
 	}
 
 	if _, err := os.Stat("./commands.toml"); err == nil {
-		fmt.Println("Commands file loaded....")
+		fmt.Println("commands.toml loaded....")
 
 	}
 
 	if _, err := os.Stat("./goofs.toml"); err == nil {
-		fmt.Println("Goofs file loaded....")
+		fmt.Println("goofs.toml loaded....")
 
 	}
 
 	if _, err := os.Stat("./badwords.toml"); err == nil {
-		fmt.Println("Banned word file loaded....")
+		fmt.Println("badwords.toml loaded....")
 
 	}
 	fmt.Printf("\n")
+}
+
+func ConsoleInput(conn net.Conn, channel string) {
+	ConsoleReader := bufio.NewReader(os.Stdin)
+	text, _ := ConsoleReader.ReadString('\n')
+	fmt.Println(text)
+
+	BotSendMsg(conn, channel, text)
 }
 
 func main() {
@@ -142,6 +149,8 @@ func main() {
 		if err != nil {
 			break
 		}
+
+		go ConsoleInput(irc.conn, irc.ChannelName)
 
 		// When Twitch servers send a ping ,respond with pong to avoid disconnections.
 		if strings.Contains(line, "PING") {
@@ -185,16 +194,18 @@ func main() {
 			if CheckForGoof == true {
 				GoofSplit := strings.Split(usermessage, " ")
 				fmt.Println(GoofSplit[1])
-				f, err := os.OpenFile("commands.toml", os.O_APPEND|os.O_WRONLY, 0600)
-				if err != nil {
-					panic(err)
-				}
+				f := append(goofs.RepeatWords, GoofSplit[1])
 
-				defer f.Close()
-				fmt.Fprintf(f, "%s", GoofSplit[1])
+				//defer f.Close()
+				fmt.Println(f)
 				fmt.Println(GoofSplit)
+				file, _ := os.OpenFile("goofs.toml", os.O_WRONLY|os.O_APPEND, 0644)
+				defer file.Close()
+				fmt.Fprintf(file, `"%s"`, GoofSplit[1])
 			}
 
 		}
+
 	}
+
 }
