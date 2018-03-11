@@ -38,7 +38,7 @@ type Goof struct {
 
 func CreateBot() *BotInfo {
 	var genconfig BotInfo
-	_, conferr := toml.DecodeFile("config.toml", &genconfig)
+	_, conferr := toml.DecodeFile("config/config.toml", &genconfig)
 	if conferr != nil {
 		fmt.Println("Can't read toml file due to:", conferr)
 	}
@@ -58,7 +58,7 @@ types in, perhaps for a specific emote.*/
 
 func LoadGoofs() Goof {
 	var goofs Goof
-	_, gooferr := toml.DecodeFile("goofs.toml", &goofs)
+	_, gooferr := toml.DecodeFile("config/goofs.toml", &goofs)
 	if gooferr != nil {
 		log.Fatal(gooferr)
 	}
@@ -68,7 +68,7 @@ func LoadGoofs() Goof {
 
 func LoadBadWords() BadWord {
 	var badwords BadWord
-	_, worderr := toml.DecodeFile("badwords.toml", &badwords)
+	_, worderr := toml.DecodeFile("config/badwords.toml", &badwords)
 	if worderr != nil {
 		log.Fatal(worderr)
 	}
@@ -77,7 +77,7 @@ func LoadBadWords() BadWord {
 
 func LoadCustomCommands() CustomCommand {
 	var customcommand CustomCommand
-	_, comerr := toml.DecodeFile("commands.toml", &customcommand)
+	_, comerr := toml.DecodeFile("config/commands.toml", &customcommand)
 	if comerr != nil {
 		log.Fatal(comerr)
 	}
@@ -99,22 +99,22 @@ func (bot *BotInfo) Connect() {
 }
 
 func CheckConfigs() {
-	if _, err := os.Stat("./config.toml"); err == nil {
+	if _, err := os.Stat("config/config.toml"); err == nil {
 		fmt.Println("config.toml loaded....")
 
 	}
 
-	if _, err := os.Stat("./commands.toml"); err == nil {
+	if _, err := os.Stat("config/commands.toml"); err == nil {
 		fmt.Println("commands.toml loaded....")
 
 	}
 
-	if _, err := os.Stat("./goofs.toml"); err == nil {
+	if _, err := os.Stat("config/goofs.toml"); err == nil {
 		fmt.Println("goofs.toml loaded....")
 
 	}
 
-	if _, err := os.Stat("./badwords.toml"); err == nil {
+	if _, err := os.Stat("config/badwords.toml"); err == nil {
 		fmt.Println("badwords.toml loaded....")
 
 	}
@@ -199,7 +199,7 @@ func main() {
 				//defer f.Close()
 				fmt.Println(f)
 				fmt.Println(GoofSplit)
-				file, _ := os.OpenFile("goofs.toml", os.O_WRONLY|os.O_APPEND, 0644)
+				file, _ := os.OpenFile("config/goofs.toml", os.O_WRONLY|os.O_APPEND, 0644)
 				defer file.Close()
 				fmt.Fprintf(file, `"%s"`, GoofSplit[1])
 			}
