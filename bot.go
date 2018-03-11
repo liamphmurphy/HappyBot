@@ -88,6 +88,18 @@ func BotSendMsg(conn net.Conn, channel string, message string) {
 	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
+func ConsoleInput(conn net.Conn, channel string) {
+	ConsoleReader := bufio.NewReader(os.Stdin)
+	text, _ := ConsoleReader.ReadString('\n')
+
+	ChatMsgCheck := strings.Contains(text, "!msg")
+	if ChatMsgCheck == true {
+		MsgSplit := strings.Split(text, "!msg ")
+		BotSendMsg(conn, channel, MsgSplit[1])
+	}
+
+}
+
 func (bot *BotInfo) Connect() {
 	var err error
 	fmt.Println(bot.ServerName)
@@ -119,14 +131,6 @@ func CheckConfigs() {
 
 	}
 	fmt.Printf("\n")
-}
-
-func ConsoleInput(conn net.Conn, channel string) {
-	ConsoleReader := bufio.NewReader(os.Stdin)
-	text, _ := ConsoleReader.ReadString('\n')
-	fmt.Println(text)
-
-	BotSendMsg(conn, channel, text)
 }
 
 func main() {
