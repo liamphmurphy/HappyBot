@@ -95,7 +95,11 @@ func ConsoleInput(conn net.Conn, channel string) {
 	ChatMsgCheck := strings.Contains(text, "!msg")
 	if ChatMsgCheck == true {
 		MsgSplit := strings.Split(text, "!msg ")
-		BotSendMsg(conn, channel, MsgSplit[1])
+		if len(MsgSplit) <= 1 {
+			fmt.Println("Please type a message.")
+		} else {
+			BotSendMsg(conn, channel, MsgSplit[1])
+		}
 	}
 
 	ChatHelpCheck := strings.Contains(text, "!help")
