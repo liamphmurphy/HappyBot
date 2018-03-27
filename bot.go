@@ -88,6 +88,9 @@ func BotSendMsg(conn net.Conn, channel string, message string) {
 	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
+/* ConsoleInput function for reading user input in cmd line when
+   program is running */
+
 func ConsoleInput(conn net.Conn, channel string) {
 	ConsoleReader := bufio.NewReader(os.Stdin)
 	text, _ := ConsoleReader.ReadString('\n')
@@ -95,7 +98,7 @@ func ConsoleInput(conn net.Conn, channel string) {
 	ChatMsgCheck := strings.Contains(text, "!msg")
 	if ChatMsgCheck == true {
 		MsgSplit := strings.Split(text, "!msg ")
-		if len(MsgSplit) <= 1 {
+		if len(MsgSplit) <= 1 { // Len if to handle index out of range error
 			fmt.Println("Please type a message.")
 		} else {
 			BotSendMsg(conn, channel, MsgSplit[1])
@@ -111,7 +114,7 @@ func ConsoleInput(conn net.Conn, channel string) {
 	if ChatBanCheck == true {
 		UsernameSplit := strings.Split(text, "!ban ")
 
-		if len(UsernameSplit) <= 1 {
+		if len(UsernameSplit) <= 1 { // Len if to handle index out of range error
 			fmt.Println("Please type a username.")
 		} else {
 			BotSendMsg(conn, channel, "/ban "+UsernameSplit[1])
@@ -121,9 +124,9 @@ func ConsoleInput(conn net.Conn, channel string) {
 
 }
 
+// Connect to the Twitch IRC server
 func (bot *BotInfo) Connect() {
 	var err error
-	fmt.Println(bot.ServerName)
 	bot.conn, err = net.Dial("tcp", bot.ServerName)
 	if err != nil {
 		log.Fatalln(err)
@@ -131,6 +134,7 @@ func (bot *BotInfo) Connect() {
 	fmt.Printf("Connected to: %s\n", bot.ServerName)
 }
 
+// Confirm that config files are loaded
 func CheckConfigs() {
 	if _, err := os.Stat("config/config.toml"); err == nil {
 		fmt.Println("config.toml loaded....")
@@ -159,6 +163,7 @@ func main() {
 	irc := CreateBot()
 	irc.Connect()
 
+	// Pass info to HTTP request
 	fmt.Fprintf(irc.conn, "PASS %s\r\n", irc.BotOAuth)
 	fmt.Fprintf(irc.conn, "NICK %s\r\n", irc.BotName)
 	fmt.Fprintf(irc.conn, "JOIN %s\r\n", irc.ChannelName)
@@ -168,6 +173,7 @@ func main() {
 	defer irc.conn.Close()
 	reader := bufio.NewReader(irc.conn)
 	proto := textproto.NewReader(reader)
+
 	for {
 		line, err := proto.ReadLine()
 		//fmt.Println(line)
@@ -175,9 +181,10 @@ func main() {
 			break
 		}
 
+		// Run ConsoleInput on new thread
 		go ConsoleInput(irc.conn, irc.ChannelName)
 
-		// When Twitch servers send a ping ,respond with pong to avoid disconnections.
+		// When Twitch servers send a ping, respond with pong to avoid disconnections.
 		if strings.Contains(line, "PING") {
 			pong := strings.Split(line, "PING")
 			fmt.Fprintf(irc.conn, "PONG %s\r\n", pong[1])
@@ -187,6 +194,7 @@ func main() {
 			userdata := strings.Split(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName)
 			username := strings.Split(userdata[0], "@")
 			usermessage := strings.Replace(userdata[1], " :", "", 1)
+
 			// Display the whole cleaned up message
 			fmt.Printf(username[1] + ": " + usermessage + "\n")
 
