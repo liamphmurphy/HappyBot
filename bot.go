@@ -110,8 +110,13 @@ func ConsoleInput(conn net.Conn, channel string) {
 	ChatBanCheck := strings.Contains(text, "!ban")
 	if ChatBanCheck == true {
 		UsernameSplit := strings.Split(text, "!ban ")
-		BotSendMsg(conn, channel, "/ban "+UsernameSplit[1])
-		fmt.Println(UsernameSplit[1] + " has been banned.")
+
+		if len(UsernameSplit) <= 1 {
+			fmt.Println("Please type a username.")
+		} else {
+			BotSendMsg(conn, channel, "/ban "+UsernameSplit[1])
+			fmt.Println(UsernameSplit[1] + " has been banned.")
+		}
 	}
 
 }
