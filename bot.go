@@ -98,6 +98,18 @@ func ConsoleInput(conn net.Conn, channel string) {
 		BotSendMsg(conn, channel, MsgSplit[1])
 	}
 
+	ChatHelpCheck := strings.Contains(text, "!help")
+	if ChatHelpCheck == true {
+		fmt.Println("Current console options: !msg <text message to send to chat>")
+	}
+
+	ChatBanCheck := strings.Contains(text, "!ban")
+	if ChatBanCheck == true {
+		UsernameSplit := strings.Split(text, "!ban ")
+		BotSendMsg(conn, channel, "/ban "+UsernameSplit[1])
+		fmt.Println(UsernameSplit[1] + " has been banned.")
+	}
+
 }
 
 func (bot *BotInfo) Connect() {
@@ -168,6 +180,16 @@ func main() {
 			usermessage := strings.Replace(userdata[1], " :", "", 1)
 			// Display the whole cleaned up message
 			fmt.Printf(username[1] + ": " + usermessage + "\n")
+
+			//	fmt.Println("Character count of chat message: ", len(usermessage))
+
+			if len(usermessage) > 150 {
+				fmt.Println("Very long message detected.")
+				botresponse := "/timeout " + username[1] + " 1" + "Message over max character limit."
+				BotSendMsg(irc.conn, irc.ChannelName, botresponse)
+				BotSendMsg(irc.conn, irc.ChannelName, "@"+username[1]+" please shorten your message")
+
+			}
 
 			// Make variables to load the different toml files
 			goofs := LoadGoofs()
