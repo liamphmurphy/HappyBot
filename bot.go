@@ -167,6 +167,8 @@ func main() {
 	fmt.Fprintf(irc.conn, "PASS %s\r\n", irc.BotOAuth)
 	fmt.Fprintf(irc.conn, "NICK %s\r\n", irc.BotName)
 	fmt.Fprintf(irc.conn, "JOIN %s\r\n", irc.ChannelName)
+	fmt.Fprintf(irc.conn, "CAP REQ :twitch.tv/membership\r\n")
+	fmt.Fprintf(irc.conn, "CAP REQ :twitch.tv/tags\r\n")
 	fmt.Fprintf(irc.conn, "CAP REQ :twitch.tv/commands\r\n")
 	fmt.Printf("Channel: " + irc.ChannelName + "\n")
 
