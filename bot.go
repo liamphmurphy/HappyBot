@@ -217,7 +217,7 @@ func main() {
 			fmt.Printf(username[2] + ": " + usermessage + "\n")
 
 			if irc.MakeLog == true {
-				f, _ := os.OpenFile(filename[0]+".txt", os.O_APPEND|os.O_WRONLY, 0600)
+				f, _ := os.OpenFile("logs/"+filename[0]+".txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				f.WriteString(username[2] + ": " + usermessage + "\n")
 			}
 
