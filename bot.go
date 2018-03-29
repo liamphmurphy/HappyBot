@@ -9,6 +9,7 @@ import (
 	"net/textproto"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -20,6 +21,7 @@ type BotInfo struct {
 	BotName        string
 	conn           net.Conn
 	LongMessageCap int
+	MakeLog        bool
 }
 
 type CustomCommand struct {
@@ -51,6 +53,7 @@ func CreateBot() *BotInfo {
 		BotOAuth:       genconfig.BotOAuth,
 		BotName:        genconfig.BotName,
 		LongMessageCap: genconfig.LongMessageCap,
+		MakeLog:        genconfig.MakeLog,
 	}
 }
 
@@ -207,11 +210,15 @@ func main() {
 
 			// Display the whole cleaned up message
 			fmt.Printf(username[2] + ": " + usermessage + "\n")
-			/*	if *userargs == "--tagchat" {
-					fmt.Println(line)
-				} else {
 
-				}*/
+			if irc.MakeLog == true {
+				currenttime := time.Now()
+				datestring := currenttime.String()
+				filename := strings.Split(datestring, " ")
+				fmt.Println(filename[0] + ".txt")
+				f, _ := os.OpenFile(filename[0]+".txt", os.O_APPEND|os.O_WRONLY, 0600)
+				f.WriteString(username[2] + ": " + usermessage + "\n")
+			}
 
 			//	fmt.Println("Character count of chat message: ", len(usermessage))
 

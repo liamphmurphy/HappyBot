@@ -1,10 +1,9 @@
-# Put in your channel name, please keep the # symbol there.
 ChannelName = "#"
 ServerName = "irc.chat.twitch.tv:6667"
-# Oauth from Twitch here
+# Oauth from TWitch here
 BotOAuth = ""
-# Bot Twitch Account name here: keep # there.
 BotName = "#"
-
 ##### CHAT PROPERTIES #####
 LongMessageCap = 150
+MakeLog = false
+
