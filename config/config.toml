@@ -5,3 +5,6 @@ ServerName = "irc.chat.twitch.tv:6667"
 BotOAuth = ""
 # Bot Twitch Account name here: keep # there.
 BotName = "#"
+
+##### CHAT PROPERTIES #####
+LongMessageCap = 150
