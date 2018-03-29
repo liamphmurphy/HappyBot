@@ -188,6 +188,10 @@ func main() {
 	userargs := flag.String("--tagchat", "--tagchat", "detailed view")
 	fmt.Println(*userargs)
 
+	currenttime := time.Now()
+	datestring := currenttime.String()
+	filename := strings.Split(datestring, " ")
+
 	for {
 		line, err := proto.ReadLine()
 		if err != nil {
@@ -212,10 +216,6 @@ func main() {
 			fmt.Printf(username[2] + ": " + usermessage + "\n")
 
 			if irc.MakeLog == true {
-				currenttime := time.Now()
-				datestring := currenttime.String()
-				filename := strings.Split(datestring, " ")
-				fmt.Println(filename[0] + ".txt")
 				f, _ := os.OpenFile(filename[0]+".txt", os.O_APPEND|os.O_WRONLY, 0600)
 				f.WriteString(username[2] + ": " + usermessage + "\n")
 			}
