@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -22,6 +21,7 @@ type BotInfo struct {
 	conn           net.Conn
 	LongMessageCap int
 	MakeLog        bool
+	SubResponse    string
 }
 
 type CustomCommand struct {
@@ -54,6 +54,7 @@ func CreateBot() *BotInfo {
 		BotName:        genconfig.BotName,
 		LongMessageCap: genconfig.LongMessageCap,
 		MakeLog:        genconfig.MakeLog,
+		SubResponse:    genconfig.SubResponse,
 	}
 }
 
@@ -185,8 +186,8 @@ func main() {
 	reader := bufio.NewReader(irc.conn)
 	proto := textproto.NewReader(reader)
 
-	userargs := flag.String("--tagchat", "--tagchat", "detailed view")
-	fmt.Println(*userargs)
+	//userargs := flag.String("--tagchat", "--tagchat", "detailed view")
+	//fmt.Println(*userargs)
 
 	currenttime := time.Now()
 	datestring := currenttime.String()
@@ -270,12 +271,16 @@ func main() {
 			}
 
 		} else if strings.Contains(line, "msg-param-sub-plan") {
-			/*		line := string(line)
+			// user variables used to split the twitch tag string to get the username
+			userdata := strings.Split(line, ".tmi.twitch.tv USERNOTICE "+irc.ChannelName)
+			username1 := strings.Split(userdata[0], "display-name=")
+			username2 := strings.Split(username1[1], ";")
 
-								subuser := strings.TrimPrefix(line, "USERNOTICE")
-								fmt.Println(subuser)
-					fmt.Println(strings.SplitAfter(line, "color"))
-			*/
+			// Thank the user for subbing
+			botsubresponse := "@" + username2[0] + " " + irc.SubResponse
+			fmt.Println(botsubresponse)
+			BotSendMsg(irc.conn, irc.ChannelName, botsubresponse)
+
 		}
 
 	}

@@ -6,4 +6,5 @@ BotName = "#"
 ##### CHAT PROPERTIES #####
 LongMessageCap = 150
 MakeLog = false
+SubResponse = "thanks for subscribing!"
 
