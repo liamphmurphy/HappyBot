@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -169,19 +170,23 @@ func main() {
 	fmt.Fprintf(irc.conn, "PASS %s\r\n", irc.BotOAuth)
 	fmt.Fprintf(irc.conn, "NICK %s\r\n", irc.BotName)
 	fmt.Fprintf(irc.conn, "JOIN %s\r\n", irc.ChannelName)
+
+	// Twitch specific information, like badges, mod status etc.
 	fmt.Fprintf(irc.conn, "CAP REQ :twitch.tv/membership\r\n")
 	fmt.Fprintf(irc.conn, "CAP REQ :twitch.tv/tags\r\n")
 	fmt.Fprintf(irc.conn, "CAP REQ :twitch.tv/commands\r\n")
+
 	fmt.Printf("Channel: " + irc.ChannelName + "\n")
 
 	defer irc.conn.Close()
 	reader := bufio.NewReader(irc.conn)
 	proto := textproto.NewReader(reader)
 
+	userargs := flag.String("--tagchat", "--tagchat", "detailed view")
+	fmt.Println(*userargs)
+
 	for {
 		line, err := proto.ReadLine()
-		//	fmt.Println(line)
-		//	fmt.Printf("\n")
 		if err != nil {
 			break
 		}
@@ -196,12 +201,17 @@ func main() {
 
 			// Parse the data received from each chat message into something readable.
 		} else if strings.Contains(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName) {
-			userdata := strings.Split(line, ""+irc.ChannelName)
+			userdata := strings.Split(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName)
 			username := strings.Split(userdata[0], "@")
 			usermessage := strings.Replace(userdata[1], " :", "", 1)
 
 			// Display the whole cleaned up message
-			fmt.Printf(username[1] + ": " + usermessage + "\n")
+			fmt.Printf(username[2] + ": " + usermessage + "\n")
+			/*	if *userargs == "--tagchat" {
+					fmt.Println(line)
+				} else {
+
+				}*/
 
 			//	fmt.Println("Character count of chat message: ", len(usermessage))
 
@@ -253,12 +263,12 @@ func main() {
 			}
 
 		} else if strings.Contains(line, "msg-param-sub-plan") {
-			line := string(line)
+			/*		line := string(line)
 
-			/*			subuser := strings.TrimPrefix(line, "USERNOTICE")
-						fmt.Println(subuser)*/
-			fmt.Println(strings.SplitAfter(line, "color"))
-
+								subuser := strings.TrimPrefix(line, "USERNOTICE")
+								fmt.Println(subuser)
+					fmt.Println(strings.SplitAfter(line, "color"))
+			*/
 		}
 
 	}
