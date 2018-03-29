@@ -13,11 +13,12 @@ import (
 )
 
 type BotInfo struct {
-	ChannelName string
-	ServerName  string
-	BotOAuth    string
-	BotName     string
-	conn        net.Conn
+	ChannelName    string
+	ServerName     string
+	BotOAuth       string
+	BotName        string
+	conn           net.Conn
+	LongMessageCap int
 }
 
 type CustomCommand struct {
@@ -44,10 +45,11 @@ func CreateBot() *BotInfo {
 	}
 
 	return &BotInfo{
-		ChannelName: genconfig.ChannelName,
-		ServerName:  genconfig.ServerName,
-		BotOAuth:    genconfig.BotOAuth,
-		BotName:     genconfig.BotName,
+		ChannelName:    genconfig.ChannelName,
+		ServerName:     genconfig.ServerName,
+		BotOAuth:       genconfig.BotOAuth,
+		BotName:        genconfig.BotName,
+		LongMessageCap: genconfig.LongMessageCap,
 	}
 }
 
@@ -85,7 +87,7 @@ func LoadCustomCommands() CustomCommand {
 }
 
 func BotSendMsg(conn net.Conn, channel string, message string) {
-	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	//	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -178,7 +180,8 @@ func main() {
 
 	for {
 		line, err := proto.ReadLine()
-		//fmt.Println(line)
+		//	fmt.Println(line)
+		//	fmt.Printf("\n")
 		if err != nil {
 			break
 		}
@@ -193,7 +196,7 @@ func main() {
 
 			// Parse the data received from each chat message into something readable.
 		} else if strings.Contains(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName) {
-			userdata := strings.Split(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName)
+			userdata := strings.Split(line, ""+irc.ChannelName)
 			username := strings.Split(userdata[0], "@")
 			usermessage := strings.Replace(userdata[1], " :", "", 1)
 
@@ -202,18 +205,18 @@ func main() {
 
 			//	fmt.Println("Character count of chat message: ", len(usermessage))
 
-			if len(usermessage) > 150 {
+			// Make variables to load the different toml files
+			goofs := LoadGoofs()
+			badwords := LoadBadWords()
+			customcommand := LoadCustomCommands()
+
+			if len(usermessage) > irc.LongMessageCap {
 				fmt.Println("Very long message detected.")
 				botresponse := "/timeout " + username[1] + " 1" + "Message over max character limit."
 				BotSendMsg(irc.conn, irc.ChannelName, botresponse)
 				BotSendMsg(irc.conn, irc.ChannelName, "@"+username[1]+" please shorten your message")
 
 			}
-
-			// Make variables to load the different toml files
-			goofs := LoadGoofs()
-			badwords := LoadBadWords()
-			customcommand := LoadCustomCommands()
 
 			// Check for occurences of values from arrays/maps etc
 			for _, v := range goofs.RepeatWords {
@@ -248,6 +251,13 @@ func main() {
 				defer file.Close()
 				fmt.Fprintf(file, `"%s"`, GoofSplit[1])
 			}
+
+		} else if strings.Contains(line, "msg-param-sub-plan") {
+			line := string(line)
+
+			/*			subuser := strings.TrimPrefix(line, "USERNOTICE")
+						fmt.Println(subuser)*/
+			fmt.Println(strings.SplitAfter(line, "color"))
 
 		}
 
