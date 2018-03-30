@@ -22,6 +22,7 @@ type BotInfo struct {
 	LongMessageCap int
 	MakeLog        bool
 	SubResponse    string
+	PurgeForLinks  bool
 }
 
 type CustomCommand struct {
@@ -55,6 +56,7 @@ func CreateBot() *BotInfo {
 		LongMessageCap: genconfig.LongMessageCap,
 		MakeLog:        genconfig.MakeLog,
 		SubResponse:    genconfig.SubResponse,
+		PurgeForLinks:  genconfig.PurgeForLinks,
 	}
 }
 
@@ -92,7 +94,7 @@ func LoadCustomCommands() CustomCommand {
 }
 
 func BotSendMsg(conn net.Conn, channel string, message string) {
-	//	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -221,8 +223,6 @@ func main() {
 				f.WriteString(username[2] + ": " + usermessage + "\n")
 			}
 
-			//	fmt.Println("Character count of chat message: ", len(usermessage))
-
 			// Make variables to load the different toml files
 			goofs := LoadGoofs()
 			badwords := LoadBadWords()
@@ -239,8 +239,20 @@ func main() {
 			// Mod check prototype
 			modname1 := strings.Split(line, "mod=")
 			modname2 := strings.Split(modname1[1], ";")
-			if modname2[0] == "1" {
-				fmt.Println("This user is a mod.")
+
+			if strings.Contains(usermessage, ".com") {
+				if irc.PurgeForLinks == true {
+					fmt.Println("Link detected")
+					if modname2[0] == "1" {
+						fmt.Println("Link permitted.")
+					}
+
+					if modname2[0] == "0" {
+						botresponse := "/timeout " + username[2] + " 1" + "Link when not a mod."
+						BotSendMsg(irc.conn, irc.ChannelName, botresponse)
+						BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" please ask for permission to post a link.")
+					}
+				}
 			}
 
 			// Check for occurences of values from arrays/maps etc
@@ -253,8 +265,8 @@ func main() {
 
 			for _, v := range badwords.BannableText {
 				if usermessage == v {
-					fmt.Println(username[1], "has been banned.")
-					BotSendMsg(irc.conn, irc.ChannelName, usermessage)
+					fmt.Println(username[2], "has been banned.")
+					BotSendMsg(irc.conn, irc.ChannelName, "/ban "+username[2])
 				}
 			}
 
@@ -269,7 +281,6 @@ func main() {
 				fmt.Println(GoofSplit[1])
 				f := append(goofs.RepeatWords, GoofSplit[1])
 
-				//defer f.Close()
 				fmt.Println(f)
 				fmt.Println(GoofSplit)
 				file, _ := os.OpenFile("config/goofs.toml", os.O_WRONLY|os.O_APPEND, 0644)
