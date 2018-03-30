@@ -198,7 +198,7 @@ func main() {
 		if err != nil {
 			break
 		}
-
+		//fmt.Println(line)
 		// Run ConsoleInput on new thread
 		go ConsoleInput(irc.conn, irc.ChannelName)
 
@@ -236,6 +236,13 @@ func main() {
 
 			}
 
+			// Mod check prototype
+			modname1 := strings.Split(line, "mod=")
+			modname2 := strings.Split(modname1[1], ";")
+			if modname2[0] == "1" {
+				fmt.Println("This user is a mod.")
+			}
+
 			// Check for occurences of values from arrays/maps etc
 			for _, v := range goofs.RepeatWords {
 				if usermessage == v {
@@ -270,17 +277,17 @@ func main() {
 				fmt.Fprintf(file, `"%s"`, GoofSplit[1])
 			}
 
-		} else if strings.Contains(line, "msg-param-sub-plan") {
+		} else if strings.Contains(line, "USERNOTICE") {
 			// user variables used to split the twitch tag string to get the username
-			userdata := strings.Split(line, ".tmi.twitch.tv USERNOTICE "+irc.ChannelName)
-			username1 := strings.Split(userdata[0], "display-name=")
-			username2 := strings.Split(username1[1], ";")
+			if strings.Contains(line, "msg-param-sub-plan") {
+				username1 := strings.Split(line, "display-name=")
+				username2 := strings.Split(username1[1], ";")
 
-			// Thank the user for subbing
-			botsubresponse := "@" + username2[0] + " " + irc.SubResponse
-			fmt.Println(botsubresponse)
-			BotSendMsg(irc.conn, irc.ChannelName, botsubresponse)
-
+				// Thank the user for subbing
+				botsubresponse := "@" + username2[0] + " " + irc.SubResponse
+				fmt.Println(botsubresponse)
+				BotSendMsg(irc.conn, irc.ChannelName, botsubresponse)
+			}
 		}
 
 	}
