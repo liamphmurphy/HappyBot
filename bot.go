@@ -14,16 +14,17 @@ import (
 )
 
 type BotInfo struct {
-	ChannelName    string
-	ServerName     string
-	BotOAuth       string
-	BotName        string
-	conn           net.Conn
-	LongMessageCap int
-	MakeLog        bool
-	SubResponse    string
-	PurgeForLinks  bool
-	LinkChecks     []string
+	ChannelName         string
+	ServerName          string
+	BotOAuth            string
+	BotName             string
+	conn                net.Conn
+	CheckLongMessageCap bool
+	LongMessageCap      int
+	MakeLog             bool
+	SubResponse         string
+	PurgeForLinks       bool
+	LinkChecks          []string
 }
 
 type CustomCommand struct {
@@ -50,15 +51,16 @@ func CreateBot() *BotInfo {
 	}
 
 	return &BotInfo{
-		ChannelName:    genconfig.ChannelName,
-		ServerName:     genconfig.ServerName,
-		BotOAuth:       genconfig.BotOAuth,
-		BotName:        genconfig.BotName,
-		LongMessageCap: genconfig.LongMessageCap,
-		MakeLog:        genconfig.MakeLog,
-		SubResponse:    genconfig.SubResponse,
-		PurgeForLinks:  genconfig.PurgeForLinks,
-		LinkChecks:     genconfig.LinkChecks,
+		ChannelName:         genconfig.ChannelName,
+		ServerName:          genconfig.ServerName,
+		BotOAuth:            genconfig.BotOAuth,
+		BotName:             genconfig.BotName,
+		LongMessageCap:      genconfig.LongMessageCap,
+		MakeLog:             genconfig.MakeLog,
+		SubResponse:         genconfig.SubResponse,
+		PurgeForLinks:       genconfig.PurgeForLinks,
+		LinkChecks:          genconfig.LinkChecks,
+		CheckLongMessageCap: genconfig.CheckLongMessageCap,
 	}
 }
 
@@ -96,7 +98,7 @@ func LoadCustomCommands() CustomCommand {
 }
 
 func BotSendMsg(conn net.Conn, channel string, message string) {
-	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -230,14 +232,15 @@ func main() {
 			badwords := LoadBadWords()
 			customcommand := LoadCustomCommands()
 
-			if len(usermessage) > irc.LongMessageCap {
-				fmt.Println("Very long message detected.")
-				botresponse := "/timeout " + username[1] + " 1" + "Message over max character limit."
-				BotSendMsg(irc.conn, irc.ChannelName, botresponse)
-				BotSendMsg(irc.conn, irc.ChannelName, "@"+username[1]+" please shorten your message")
+			if irc.CheckLongMessageCap == true {
+				if len(usermessage) > irc.LongMessageCap {
+					fmt.Println("Very long message detected.")
+					botresponse := "/timeout " + username[1] + " 1" + "Message over max character limit."
+					BotSendMsg(irc.conn, irc.ChannelName, botresponse)
+					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[1]+" please shorten your message")
 
+				}
 			}
-
 			// Mod check prototype
 			modname1 := strings.Split(line, "mod=")
 			modname2 := strings.Split(modname1[1], ";")

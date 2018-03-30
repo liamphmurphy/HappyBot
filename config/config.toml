@@ -4,8 +4,12 @@ ServerName = "irc.chat.twitch.tv:6667"
 BotOAuth = ""
 BotName = "#"
 ##### CHAT PROPERTIES #####
-LongMessageCap = 150
-MakeLog = true  # Disabled by default, logs can take up space fast depending on chat activity
+CheckLongMessageCap = true
+LongMessageCap = 300
+
+MakeLog = false  # Disabled by default, logs can take up space fast depending on chat activity
+
 SubResponse = "thanks for subscribing!"
+
 PurgeForLinks = true
 LinkChecks = [".com", ".net", ".org"]
