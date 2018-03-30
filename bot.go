@@ -98,7 +98,7 @@ func LoadCustomCommands() CustomCommand {
 }
 
 func BotSendMsg(conn net.Conn, channel string, message string) {
-	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -242,18 +242,24 @@ func main() {
 				}
 			}
 			// Mod check prototype
-			modname1 := strings.Split(line, "mod=")
-			modname2 := strings.Split(modname1[1], ";")
+			/*modname1 := strings.Split(line, "mod=")
+			modname2 := strings.Split(modname1[1], ";")*/
 
 			// For each value in LinkChecks array in config.toml, check whether to purge user or not.
 			for _, v := range irc.LinkChecks {
+				userbadges1 := strings.Split(line, "@badges=")
+				userbadges2 := strings.Split(userbadges1[1], "/")
 				if strings.Contains(usermessage, v) {
 					if irc.PurgeForLinks == true {
-						fmt.Println("Link detected")
-						if modname2[0] == "1" {
+						if strings.Contains(userbadges2[0], "subscriber") {
 							fmt.Println("Link permitted.")
 						}
-						if modname2[0] == "0" {
+						if strings.Contains(userbadges2[0], "moderator") {
+							fmt.Println("Link permitted.")
+						}
+						if strings.Contains(userbadges2[0], "broadcaster") {
+							fmt.Println("Link permitted.")
+						} else {
 							botresponse := "/timeout " + username[2] + " 1" + "Link when not a mod."
 							BotSendMsg(irc.conn, irc.ChannelName, botresponse)
 							BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" please ask for permission to post a link.")
