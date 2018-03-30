@@ -23,6 +23,7 @@ type BotInfo struct {
 	MakeLog        bool
 	SubResponse    string
 	PurgeForLinks  bool
+	LinkChecks     []string
 }
 
 type CustomCommand struct {
@@ -57,6 +58,7 @@ func CreateBot() *BotInfo {
 		MakeLog:        genconfig.MakeLog,
 		SubResponse:    genconfig.SubResponse,
 		PurgeForLinks:  genconfig.PurgeForLinks,
+		LinkChecks:     genconfig.LinkChecks,
 	}
 }
 
@@ -240,21 +242,22 @@ func main() {
 			modname1 := strings.Split(line, "mod=")
 			modname2 := strings.Split(modname1[1], ";")
 
-			if strings.Contains(usermessage, ".com") {
-				if irc.PurgeForLinks == true {
-					fmt.Println("Link detected")
-					if modname2[0] == "1" {
-						fmt.Println("Link permitted.")
-					}
-
-					if modname2[0] == "0" {
-						botresponse := "/timeout " + username[2] + " 1" + "Link when not a mod."
-						BotSendMsg(irc.conn, irc.ChannelName, botresponse)
-						BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" please ask for permission to post a link.")
+			// For each value in LinkChecks array in config.toml, check whether to purge user or not.
+			for _, v := range irc.LinkChecks {
+				if strings.Contains(usermessage, v) {
+					if irc.PurgeForLinks == true {
+						fmt.Println("Link detected")
+						if modname2[0] == "1" {
+							fmt.Println("Link permitted.")
+						}
+						if modname2[0] == "0" {
+							botresponse := "/timeout " + username[2] + " 1" + "Link when not a mod."
+							BotSendMsg(irc.conn, irc.ChannelName, botresponse)
+							BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" please ask for permission to post a link.")
+						}
 					}
 				}
 			}
-
 			// Check for occurences of values from arrays/maps etc
 			for _, v := range goofs.RepeatWords {
 				if usermessage == v {

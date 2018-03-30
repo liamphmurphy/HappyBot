@@ -7,5 +7,5 @@ BotName = "#"
 LongMessageCap = 150
 MakeLog = true  # Disabled by default, logs can take up space fast depending on chat activity
 SubResponse = "thanks for subscribing!"
-PurgeForLinks = false
-
+PurgeForLinks = true
+LinkChecks = [".com", ".net", ".org"]
