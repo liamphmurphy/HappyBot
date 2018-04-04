@@ -101,6 +101,11 @@ func BotSendMsg(conn net.Conn, channel string, message string) {
 	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
+func WriteToLog(log string, text string) {
+	f, _ := os.OpenFile(log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f.WriteString(text)
+}
+
 /* ConsoleInput function for reading user input in cmd line when
    program is running */
 
@@ -192,9 +197,6 @@ func main() {
 	reader := bufio.NewReader(irc.conn)
 	proto := textproto.NewReader(reader)
 
-	//userargs := flag.String("--tagchat", "--tagchat", "detailed view")
-	//fmt.Println(*userargs)
-
 	currenttime := time.Now()
 	datestring := currenttime.String()
 	filename := strings.Split(datestring, " ")
@@ -219,12 +221,15 @@ func main() {
 			username := strings.Split(userdata[0], "@")
 			usermessage := strings.Replace(userdata[1], " :", "", 1)
 
+			//fmt.Println(UserNameSlice)
+
 			// Display the whole cleaned up message
 			fmt.Printf(username[2] + ": " + usermessage + "\n")
 
 			if irc.MakeLog == true {
-				f, _ := os.OpenFile("logs/"+filename[0]+".txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				f.WriteString(username[2] + ": " + usermessage + "\n")
+				loglocation := "logs/"+filename[0]+".txt"
+				logmessage := (username[2] + ": " + usermessage + "\n")
+				WriteToLog(loglocation, logmessage)
 			}
 
 			// Make variables to load the different toml files
@@ -276,7 +281,7 @@ func main() {
 			}
 
 			for _, v := range badwords.BannableText {
-				if usermessage == v {
+				if strings.Contains(usermessage, v) {
 					fmt.Println(username[2], "has been banned.")
 					BotSendMsg(irc.conn, irc.ChannelName, "/ban "+username[2])
 				}
@@ -287,17 +292,29 @@ func main() {
 					BotSendMsg(irc.conn, irc.ChannelName, v.ComResponse)
 				}
 			}
+
 			CheckForGoof := strings.Contains(usermessage, "!addgoof")
 			if CheckForGoof == true {
 				GoofSplit := strings.Split(usermessage, " ")
 				fmt.Println(GoofSplit[1])
-				f := append(goofs.RepeatWords, GoofSplit[1])
+				RepeatWordsAppend := append(goofs.RepeatWords, GoofSplit[1])
 
-				fmt.Println(f)
-				fmt.Println(GoofSplit)
+				fmt.Println(goofs.RepeatWords)
 				file, _ := os.OpenFile("config/goofs.toml", os.O_WRONLY|os.O_APPEND, 0644)
 				defer file.Close()
-				fmt.Fprintf(file, `"%s"`, GoofSplit[1])
+				//fmt.Fprintf(file, `%s`, RepeatWordsAppend)
+				var ValueChange string
+				for _, v := range RepeatWordsAppend {
+					ValueChange = (`"` + v + `"` + `,`)
+					fmt.Println(ValueChange)
+				}
+				//fmt.Println(ValueChange)
+
+			}
+
+			// Respond to user the current time, currently locked to the computer the bot is running on
+			if usermessage == "!time" {
+				BotSendMsg(irc.conn, irc.ChannelName, filename[1] + " " + filename[3])
 			}
 
 		} else if strings.Contains(line, "USERNOTICE") {
