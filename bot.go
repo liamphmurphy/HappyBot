@@ -199,15 +199,16 @@ func main() {
 
 	currenttime := time.Now()
 	datestring := currenttime.String()
-	filename := strings.Split(datestring, " ")
+	datesplit := strings.Split(datestring, " ")
 
 	for {
 		line, err := proto.ReadLine()
 		if err != nil {
 			break
 		}
-		//fmt.Println(line)
-		// Run ConsoleInput on new thread
+
+		/* Run ConsoleInput on new thread
+		Allows user to type commands into terminal window */
 		go ConsoleInput(irc.conn, irc.ChannelName)
 
 		// When Twitch servers send a ping, respond with pong to avoid disconnections.
@@ -227,7 +228,7 @@ func main() {
 			fmt.Printf(username[2] + ": " + usermessage + "\n")
 
 			if irc.MakeLog == true {
-				loglocation := "logs/"+filename[0]+".txt"
+				loglocation := "logs/"+datesplit[0]+".txt"
 				logmessage := (username[2] + ": " + usermessage + "\n")
 				WriteToLog(loglocation, logmessage)
 			}
@@ -314,7 +315,7 @@ func main() {
 
 			// Respond to user the current time, currently locked to the computer the bot is running on
 			if usermessage == "!time" {
-				BotSendMsg(irc.conn, irc.ChannelName, filename[1] + " " + filename[3])
+				BotSendMsg(irc.conn, irc.ChannelName, datesplit[1] + " " + datesplit[3])
 			}
 
 		} else if strings.Contains(line, "USERNOTICE") {
