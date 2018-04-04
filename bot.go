@@ -140,6 +140,18 @@ func ConsoleInput(conn net.Conn, channel string) {
 		}
 	}
 
+	ChatUnBanCheck := strings.Contains(text, "!unban")
+	if ChatUnBanCheck == true {
+		UsernameSplit := strings.Split(text, "!unban ")
+
+		if len(UsernameSplit) <= 1 { // Len if to handle index out of range error
+			fmt.Println("Please type a username.")
+		} else {
+			BotSendMsg(conn, channel, "/unban "+UsernameSplit[1])
+			fmt.Println(UsernameSplit[1] + " has been unbanned.")
+		}
+	}
+
 }
 
 // Connect to the Twitch IRC server
