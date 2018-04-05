@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
 	"log"
 	"net"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type BotInfo struct {
@@ -28,10 +30,8 @@ type BotInfo struct {
 }
 
 type CustomCommand struct {
-	Command []struct {
-		ComKey      string
-		ComResponse string
-	}
+	CommandName     []string
+	CommandResponse []string
 }
 
 type BadWord struct {
@@ -40,7 +40,8 @@ type BadWord struct {
 }
 
 type Goof struct {
-	RepeatWords []string
+	GoofName  string
+	GoofArray []string
 }
 
 func CreateBot() *BotInfo {
@@ -71,9 +72,15 @@ types in, perhaps for a specific emote.*/
 
 func LoadGoofs() Goof {
 	var goofs Goof
-	_, gooferr := toml.DecodeFile("config/goofs.toml", &goofs)
-	if gooferr != nil {
-		log.Fatal(gooferr)
+	database, err := sql.Open("sqlite3", "./commands.db")
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+
+	rows, _ := database.Query("SELECT GoofName FROM goofs")
+	for rows.Next() {
+		rows.Scan(&goofs.GoofName)
+		goofs.GoofArray = append(goofs.GoofArray, goofs.GoofName)
 	}
 
 	return goofs
@@ -90,9 +97,14 @@ func LoadBadWords() BadWord {
 
 func LoadCustomCommands() CustomCommand {
 	var customcommand CustomCommand
-	_, comerr := toml.DecodeFile("config/commands.toml", &customcommand)
-	if comerr != nil {
-		log.Fatal(comerr)
+	database, err := sql.Open("sqlite3", "./commands.db")
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+
+	rows, _ := database.Query("SELECT CommandName, CommandResponse FROM commands")
+	for rows.Next() {
+		rows.Scan(&customcommand.CommandName, &customcommand.CommandResponse)
 	}
 	return customcommand
 }
@@ -152,6 +164,19 @@ func ConsoleInput(conn net.Conn, channel string) {
 		}
 	}
 
+	ChatPurgeCheck := strings.Contains(text, "!purge")
+	if ChatPurgeCheck == true {
+		UsernameSplit := strings.Split(text, "!purge ")
+
+		if len(UsernameSplit) <= 1 { // Len if to handle index out of range error
+			fmt.Println("Please type a username.")
+		} else {
+			ChatCommand := ("/timeout " + UsernameSplit[1] + " 1" + "Message over max character limit.")
+			BotSendMsg(conn, channel, ChatCommand)
+			fmt.Println(UsernameSplit[1] + " has been purged.")
+		}
+	}
+
 }
 
 // Connect to the Twitch IRC server
@@ -189,6 +214,18 @@ func CheckConfigs() {
 }
 
 func main() {
+
+	database, err := sql.Open("sqlite3", "./commands.db")
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+
+	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS commands (CommandID INTEGER PRIMARY KEY, CommandName TEXT, CommandResponse TEXT)")
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+	statement.Exec()
+
 	CheckConfigs()
 	irc := CreateBot()
 	irc.Connect()
@@ -240,15 +277,16 @@ func main() {
 			fmt.Printf(username[2] + ": " + usermessage + "\n")
 
 			if irc.MakeLog == true {
-				loglocation := "logs/"+datesplit[0]+".txt"
+				loglocation := "logs/" + datesplit[0] + ".txt"
 				logmessage := (username[2] + ": " + usermessage + "\n")
 				WriteToLog(loglocation, logmessage)
 			}
 
 			// Make variables to load the different toml files
-			goofs := LoadGoofs()
 			badwords := LoadBadWords()
 			customcommand := LoadCustomCommands()
+			fmt.Println(customcommand)
+			goofs := LoadGoofs()
 
 			if irc.CheckLongMessageCap == true {
 				if len(usermessage) > irc.LongMessageCap {
@@ -286,10 +324,10 @@ func main() {
 				}
 			}
 			// Check for occurences of values from arrays/maps etc
-			for _, v := range goofs.RepeatWords {
+
+			for _, v := range goofs.GoofArray {
 				if usermessage == v {
-					// If value is found, because it's a goof, repeat it in chat.
-					BotSendMsg(irc.conn, irc.ChannelName, usermessage)
+					BotSendMsg(irc.conn, irc.ChannelName, v)
 				}
 			}
 
@@ -300,34 +338,34 @@ func main() {
 				}
 			}
 
-			for _, v := range customcommand.Command {
+			/*for _, v := range customcommand.Command {
 				if usermessage == v.ComKey {
 					BotSendMsg(irc.conn, irc.ChannelName, v.ComResponse)
 				}
-			}
+			}*/
 
 			CheckForGoof := strings.Contains(usermessage, "!addgoof")
 			if CheckForGoof == true {
-				GoofSplit := strings.Split(usermessage, " ")
-				fmt.Println(GoofSplit[1])
-				RepeatWordsAppend := append(goofs.RepeatWords, GoofSplit[1])
-
-				fmt.Println(goofs.RepeatWords)
-				file, _ := os.OpenFile("config/goofs.toml", os.O_WRONLY|os.O_APPEND, 0644)
-				defer file.Close()
-				//fmt.Fprintf(file, `%s`, RepeatWordsAppend)
-				var ValueChange string
-				for _, v := range RepeatWordsAppend {
-					ValueChange = (`"` + v + `"` + `,`)
-					fmt.Println(ValueChange)
+				statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS goofs (GoofID INTEGER PRIMARY KEY, GoofName text)")
+				if err != nil {
+					fmt.Printf("Error: %s", err)
 				}
-				//fmt.Println(ValueChange)
+				statement.Exec()
 
+				GoofSplit := strings.Split(usermessage, " ")
+				GoofString := string(GoofSplit[1])
+				fmt.Println(GoofSplit[1])
+
+				statement, err = database.Prepare("INSERT INTO goofs (GoofName) VALUES (?)")
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+				}
+				statement.Exec(GoofString)
 			}
 
 			// Respond to user the current time, currently locked to the computer the bot is running on
 			if usermessage == "!time" {
-				BotSendMsg(irc.conn, irc.ChannelName, datesplit[1] + " " + datesplit[3])
+				BotSendMsg(irc.conn, irc.ChannelName, datesplit[1]+" "+datesplit[3])
 			}
 
 		} else if strings.Contains(line, "USERNOTICE") {
