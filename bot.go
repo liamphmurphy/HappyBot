@@ -35,13 +35,14 @@ type CustomCommand struct {
 }
 
 type BadWord struct {
-	BannableText []string
+	BadWordItem  string
+	BadwordSlice []string
 	TimeoutText  []string
 }
 
 type Goof struct {
 	GoofName  string
-	GoofArray []string
+	GoofSlice []string
 }
 
 func CreateBot() *BotInfo {
@@ -72,15 +73,12 @@ types in, perhaps for a specific emote.*/
 
 func LoadGoofs() Goof {
 	var goofs Goof
-	database, err := sql.Open("sqlite3", "./commands.db")
-	if err != nil {
-		fmt.Printf("Error: %s", err)
-	}
+	database := InitializeDB()
 
 	rows, _ := database.Query("SELECT GoofName FROM goofs")
 	for rows.Next() {
 		rows.Scan(&goofs.GoofName)
-		goofs.GoofArray = append(goofs.GoofArray, goofs.GoofName)
+		goofs.GoofSlice = append(goofs.GoofSlice, goofs.GoofName)
 	}
 
 	return goofs
@@ -88,34 +86,70 @@ func LoadGoofs() Goof {
 
 func LoadBadWords() BadWord {
 	var badwords BadWord
-	_, worderr := toml.DecodeFile("config/badwords.toml", &badwords)
-	if worderr != nil {
-		log.Fatal(worderr)
+	database := InitializeDB()
+
+	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS badwords (BadwordID INTEGER PRIMARY KEY, Badword TEXT)")
+	statement.Exec()
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+
+	rows, _ := database.Query("SELECT Badword FROM badwords")
+	for rows.Next() {
+		rows.Scan(&badwords.BadWordItem)
+		badwords.BadwordSlice = append(badwords.BadwordSlice, badwords.BadWordItem)
 	}
 	return badwords
 }
 
 func LoadCustomCommands() CustomCommand {
 	var customcommand CustomCommand
-	database, err := sql.Open("sqlite3", "./commands.db")
-	if err != nil {
-		fmt.Printf("Error: %s", err)
-	}
+	database := InitializeDB()
 
-	rows, _ := database.Query("SELECT CommandName, CommandResponse FROM commands")
+	rows, _ := database.Query("SELECT CommandName, CommandResponse, CommandPermission FROM commands")
+	cols, _ := rows.Columns()
 	for rows.Next() {
-		rows.Scan(&customcommand.CommandName, &customcommand.CommandResponse)
+		// Create a slice of interface{}'s to represent each column,
+		// and a second slice to contain pointers to each item in the columns slice.
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		// Create our map, and retrieve the value for each column from the pointers slice,
+		// storing it in the map with the name of the column as the key.
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+		//rows.Scan(customcommand.CommandName, customcommand.CommandResponse)
+		// Outputs: map[columnName:value columnName2:value2 columnName3:value3 ...]
+		//fmt.Print(m)
+
 	}
 	return customcommand
 }
 
+// Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string) {
-	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
+// Write to log function, will run when set to true in config
 func WriteToLog(log string, text string) {
 	f, _ := os.OpenFile(log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	f.WriteString(text)
+}
+
+// Init database and then return it
+func InitializeDB() *sql.DB {
+	database, err := sql.Open("sqlite3", "./happybot.db")
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+	return database
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -177,6 +211,26 @@ func ConsoleInput(conn net.Conn, channel string) {
 		}
 	}
 
+	/*ChatAddBadWordCheck := strings.Contains(text, "!addbw")
+	if ChatAddBadWordCheck == true {
+		UsernameSplit := strings.Split(text, " ")
+		database := InitializeDB()
+		statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS badwords (BadwordID INTEGER PRIMARY KEY, Badword TEXT)")
+		statement.Exec()
+
+		if len(UsernameSplit) <= 1 { // Len if to handle index out of range error
+			fmt.Println("Please type a username.")
+		} else {
+			database := InitializeDB()
+			statement, err := database.Prepare("INSERT INTO badwords (Badword) VALUES (?)")
+			if err != nil {
+				fmt.Printf("Error: %s", err)
+			}
+			UsernameString := string(UsernameSplit[1])
+			statement.Exec(UsernameString)
+		}
+	}*/
+
 }
 
 // Connect to the Twitch IRC server
@@ -189,33 +243,9 @@ func (bot *BotInfo) Connect() {
 	fmt.Printf("Connected to: %s\n", bot.ServerName)
 }
 
-// Confirm that config files are loaded
-func CheckConfigs() {
-	if _, err := os.Stat("config/config.toml"); err == nil {
-		fmt.Println("config.toml loaded....")
-
-	}
-
-	if _, err := os.Stat("config/commands.toml"); err == nil {
-		fmt.Println("commands.toml loaded....")
-
-	}
-
-	if _, err := os.Stat("config/goofs.toml"); err == nil {
-		fmt.Println("goofs.toml loaded....")
-
-	}
-
-	if _, err := os.Stat("config/badwords.toml"); err == nil {
-		fmt.Println("badwords.toml loaded....")
-
-	}
-	fmt.Printf("\n")
-}
-
 func main() {
 
-	database, err := sql.Open("sqlite3", "./commands.db")
+	database, err := sql.Open("sqlite3", "./happybot.db")
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}
@@ -226,9 +256,12 @@ func main() {
 	}
 	statement.Exec()
 
-	CheckConfigs()
 	irc := CreateBot()
 	irc.Connect()
+
+	badwords := LoadBadWords()
+	customcommand := LoadCustomCommands()
+	goofs := LoadGoofs()
 
 	// Pass info to HTTP request
 	fmt.Fprintf(irc.conn, "PASS %s\r\n", irc.BotOAuth)
@@ -282,12 +315,6 @@ func main() {
 				WriteToLog(loglocation, logmessage)
 			}
 
-			// Make variables to load the different toml files
-			badwords := LoadBadWords()
-			customcommand := LoadCustomCommands()
-			fmt.Println(customcommand)
-			goofs := LoadGoofs()
-
 			if irc.CheckLongMessageCap == true {
 				if len(usermessage) > irc.LongMessageCap {
 					fmt.Println("Very long message detected.")
@@ -297,9 +324,6 @@ func main() {
 
 				}
 			}
-			// Mod check prototype
-			/*modname1 := strings.Split(line, "mod=")
-			modname2 := strings.Split(modname1[1], ";")*/
 
 			// For each value in LinkChecks array in config.toml, check whether to purge user or not.
 			for _, v := range irc.LinkChecks {
@@ -325,24 +349,24 @@ func main() {
 			}
 			// Check for occurences of values from arrays/maps etc
 
-			for _, v := range goofs.GoofArray {
+			for _, v := range goofs.GoofSlice {
 				if usermessage == v {
 					BotSendMsg(irc.conn, irc.ChannelName, v)
 				}
 			}
 
-			for _, v := range badwords.BannableText {
+			for _, v := range badwords.BadwordSlice {
 				if strings.Contains(usermessage, v) {
 					fmt.Println(username[2], "has been banned.")
 					BotSendMsg(irc.conn, irc.ChannelName, "/ban "+username[2])
 				}
 			}
 
-			/*for _, v := range customcommand.Command {
-				if usermessage == v.ComKey {
-					BotSendMsg(irc.conn, irc.ChannelName, v.ComResponse)
+			for _, v := range customcommand.CommandResponse {
+				if usermessage == v {
+					BotSendMsg(irc.conn, irc.ChannelName, v)
 				}
-			}*/
+			}
 
 			CheckForGoof := strings.Contains(usermessage, "!addgoof")
 			if CheckForGoof == true {
