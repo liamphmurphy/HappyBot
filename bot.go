@@ -79,6 +79,7 @@ func LoadGoofs() Goof {
 	for rows.Next() {
 		rows.Scan(&goofs.GoofName)
 		goofs.GoofSlice = append(goofs.GoofSlice, goofs.GoofName)
+		fmt.Println(goofs.GoofSlice)
 	}
 
 	return goofs
@@ -134,7 +135,7 @@ func LoadCustomCommands() CustomCommand {
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string) {
-	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
 // Write to log function, will run when set to true in config
@@ -385,6 +386,9 @@ func main() {
 					fmt.Printf("Error: %s", err)
 				}
 				statement.Exec(GoofString)
+
+				goofs.GoofSlice = append(goofs.GoofSlice, GoofString)
+
 			}
 
 			// Respond to user the current time, currently locked to the computer the bot is running on
