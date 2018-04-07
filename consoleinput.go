@@ -75,18 +75,21 @@ func ConsoleInput(conn net.Conn, channel string) {
 		statement.Exec()
 
 		if len(BadwordSplit) <= 1 { // Len if to handle index out of range error
-			fmt.Println("Please type a username.")
+			fmt.Println("Please type a word.")
 		} else {
 			database := InitializeDB()
 			statement, err := database.Prepare("INSERT INTO badwords (Badword) VALUES (?)")
 			if err != nil {
 				fmt.Printf("Error: %s", err)
 			}
-			UsernameString := string(BadwordSplit[1])
-			statement.Exec(UsernameString)
+			statement.Exec(BadwordSplit[1])
 			// Append to the slice in this run session to make it useable right away
 			badwords.BadwordSlice = append(badwords.BadwordSlice, BadwordSplit[1])
+			fmt.Println(badwords.BadwordSlice)
 		}
 	}
-
+	ExitCheck := strings.Contains(text, "!exit")
+	if ExitCheck == true {
+		os.Exit(3)
+	}
 }
