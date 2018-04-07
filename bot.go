@@ -79,7 +79,6 @@ func LoadGoofs() Goof {
 	for rows.Next() {
 		rows.Scan(&goofs.GoofName)
 		goofs.GoofSlice = append(goofs.GoofSlice, goofs.GoofName)
-		fmt.Println(goofs.GoofSlice)
 	}
 
 	return goofs
@@ -103,35 +102,17 @@ func LoadBadWords() BadWord {
 	return badwords
 }
 
-func LoadCustomCommands() CustomCommand {
-	var customcommand CustomCommand
-	database := InitializeDB()
+/*func LoadCustomCommands() CustomCommand {
+		var customcommand CustomCommand
+		database := InitializeDB()
 
-	rows, _ := database.Query("SELECT CommandName, CommandResponse, CommandPermission FROM commands")
-	cols, _ := rows.Columns()
-	for rows.Next() {
-		// Create a slice of interface{}'s to represent each column,
-		// and a second slice to contain pointers to each item in the columns slice.
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
+		rows, _ := database.Query("SELECT CommandName, CommandResponse, CommandPermission FROM commands")
+		cols, _ := rows.Columns()
+		for rows.Next() {
+
 		}
-
-		// Create our map, and retrieve the value for each column from the pointers slice,
-		// storing it in the map with the name of the column as the key.
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-		//rows.Scan(customcommand.CommandName, customcommand.CommandResponse)
-		// Outputs: map[columnName:value columnName2:value2 columnName3:value3 ...]
-		//fmt.Print(m)
-
-	}
-	return customcommand
-}
+		return customcommand
+}*/
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string) {
@@ -183,7 +164,7 @@ func main() {
 	irc.Connect()
 
 	badwords := LoadBadWords()
-	customcommand := LoadCustomCommands()
+	//customcommand := LoadCustomCommands()
 	goofs := LoadGoofs()
 
 	// Pass info to HTTP request
@@ -214,7 +195,7 @@ func main() {
 
 		/* Run ConsoleInput on new thread
 		Allows user to type commands into terminal window */
-		ConsoleInput(irc.conn, irc.ChannelName)
+		go ConsoleInput(irc.conn, irc.ChannelName)
 
 		// When Twitch servers send a ping, respond with pong to avoid disconnections.
 		if strings.Contains(line, "PING") {
@@ -285,11 +266,11 @@ func main() {
 				}
 			}
 
-			for _, v := range customcommand.CommandResponse {
+			/*for _, v := range customcommand.CommandResponse {
 				if usermessage == v {
 					BotSendMsg(irc.conn, irc.ChannelName, v)
 				}
-			}
+			}*/
 
 			CheckForGoof := strings.Contains(usermessage, "!addgoof")
 			if CheckForGoof == true {
