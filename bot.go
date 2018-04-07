@@ -156,84 +156,6 @@ func InitializeDB() *sql.DB {
 /* ConsoleInput function for reading user input in cmd line when
    program is running */
 
-func ConsoleInput(conn net.Conn, channel string) {
-	ConsoleReader := bufio.NewReader(os.Stdin)
-	text, _ := ConsoleReader.ReadString('\n')
-
-	ChatMsgCheck := strings.Contains(text, "!msg")
-	if ChatMsgCheck == true {
-		MsgSplit := strings.Split(text, "!msg ")
-		if len(MsgSplit) <= 1 { // Len if to handle index out of range error
-			fmt.Println("Please type a message.")
-		} else {
-			BotSendMsg(conn, channel, MsgSplit[1])
-		}
-	}
-
-	ChatHelpCheck := strings.Contains(text, "!help")
-	if ChatHelpCheck == true {
-		fmt.Println("Current console options: !msg <text message to send to chat>")
-	}
-
-	ChatBanCheck := strings.Contains(text, "!ban")
-	if ChatBanCheck == true {
-		UsernameSplit := strings.Split(text, "!ban ")
-
-		if len(UsernameSplit) <= 1 { // Len if to handle index out of range error
-			fmt.Println("Please type a username.")
-		} else {
-			BotSendMsg(conn, channel, "/ban "+UsernameSplit[1])
-			fmt.Println(UsernameSplit[1] + " has been banned.")
-		}
-	}
-
-	ChatUnBanCheck := strings.Contains(text, "!unban")
-	if ChatUnBanCheck == true {
-		UsernameSplit := strings.Split(text, "!unban ")
-
-		if len(UsernameSplit) <= 1 { // Len if to handle index out of range error
-			fmt.Println("Please type a username.")
-		} else {
-			BotSendMsg(conn, channel, "/unban "+UsernameSplit[1])
-			fmt.Println(UsernameSplit[1] + " has been unbanned.")
-		}
-	}
-
-	ChatPurgeCheck := strings.Contains(text, "!purge")
-	if ChatPurgeCheck == true {
-		UsernameSplit := strings.Split(text, "!purge ")
-
-		if len(UsernameSplit) <= 1 { // Len if to handle index out of range error
-			fmt.Println("Please type a username.")
-		} else {
-			ChatCommand := ("/timeout " + UsernameSplit[1] + " 1" + "Message over max character limit.")
-			BotSendMsg(conn, channel, ChatCommand)
-			fmt.Println(UsernameSplit[1] + " has been purged.")
-		}
-	}
-
-	/*ChatAddBadWordCheck := strings.Contains(text, "!addbw")
-	if ChatAddBadWordCheck == true {
-		UsernameSplit := strings.Split(text, " ")
-		database := InitializeDB()
-		statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS badwords (BadwordID INTEGER PRIMARY KEY, Badword TEXT)")
-		statement.Exec()
-
-		if len(UsernameSplit) <= 1 { // Len if to handle index out of range error
-			fmt.Println("Please type a username.")
-		} else {
-			database := InitializeDB()
-			statement, err := database.Prepare("INSERT INTO badwords (Badword) VALUES (?)")
-			if err != nil {
-				fmt.Printf("Error: %s", err)
-			}
-			UsernameString := string(UsernameSplit[1])
-			statement.Exec(UsernameString)
-		}
-	}*/
-
-}
-
 // Connect to the Twitch IRC server
 func (bot *BotInfo) Connect() {
 	var err error
@@ -305,8 +227,6 @@ func main() {
 			username := strings.Split(userdata[0], "@")
 			usermessage := strings.Replace(userdata[1], " :", "", 1)
 
-			//fmt.Println(UserNameSlice)
-
 			// Display the whole cleaned up message
 			fmt.Printf(username[2] + ": " + usermessage + "\n")
 
@@ -329,19 +249,21 @@ func main() {
 			// For each value in LinkChecks array in config.toml, check whether to purge user or not.
 			for _, v := range irc.LinkChecks {
 				userbadges1 := strings.Split(line, "@badges=")
-				userbadges2 := strings.Split(userbadges1[1], "/")
+				userbadges2 := strings.Split(userbadges1[1], ";")
 				if strings.Contains(usermessage, v) {
 					if irc.PurgeForLinks == true {
 						if strings.Contains(userbadges2[0], "subscriber") {
-							fmt.Println("Link permitted.")
+							fmt.Println("Link permitted: Sub.")
+							fmt.Println("userbadge is: " + userbadges2[0])
 						}
 						if strings.Contains(userbadges2[0], "moderator") {
-							fmt.Println("Link permitted.")
+							fmt.Println("Link permitted: Moderator.")
 						}
 						if strings.Contains(userbadges2[0], "broadcaster") {
-							fmt.Println("Link permitted.")
-						} else {
-							botresponse := "/timeout " + username[2] + " 1" + "Link when not a mod."
+							fmt.Println("Link permitted: Broadcaster.")
+						}
+						if strings.Contains(userbadges2[0], "") {
+							botresponse := "/timeout " + username[2] + " 1" + " Link when not a mod."
 							BotSendMsg(irc.conn, irc.ChannelName, botresponse)
 							BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" please ask for permission to post a link.")
 						}
@@ -386,7 +308,7 @@ func main() {
 					fmt.Printf("Error: %s", err)
 				}
 				statement.Exec(GoofString)
-
+				// Append to the slice in this run session to make it useable right away
 				goofs.GoofSlice = append(goofs.GoofSlice, GoofString)
 
 			}
