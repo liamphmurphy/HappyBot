@@ -1,5 +1,5 @@
 <h1> A word of warning </h1>
-On twitch, most bots do not have special privilages in regards to rules on the website. If you setup your bot using this software in such a way that is against TOS and/or gets your accounts banned, me or any of the other contributors are not responsile. The bot serves a specific purpose, and it is up to the user on how to configure it. 
+On twitch, most bots do not have special privileges in regards to rules on the website. If you setup your bot using this software in such a way that is against TOS and/or gets your accounts banned, me or any of the other contributors are not responsile. The bot serves a specific purpose, and it is up to the user on how to configure it. 
 
 Thanks :)
 
