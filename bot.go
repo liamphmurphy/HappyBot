@@ -114,7 +114,8 @@ func LoadCustomCommands() map[string]string {
 	for rows.Next() {
 		var CommandName, CommandResponse string
 		rows.Scan(&CommandName, &CommandResponse)
-		//err = rows.Scan(&CommandName, CommandResponse)
+		fmt.Println(CommandName, CommandResponse)
+		com[CommandName] = CommandResponse
 	}
 	fmt.Println(com)
 	return com
@@ -218,7 +219,7 @@ func main() {
 			fmt.Printf(username[2] + ": " + usermessage + "\n")
 
 			if irc.MakeLog == true {
-				loglocation := "logs/" + datesplit[0] + ".txt"
+				loglocation := "logs/chat/" + datesplit[0] + ".txt"
 				logmessage := (username[2] + ": " + usermessage + "\n")
 				WriteToLog(loglocation, logmessage)
 			}
@@ -272,8 +273,8 @@ func main() {
 				}
 			}
 
-			for _, v := range com {
-				if usermessage == v {
+			for k, v := range com {
+				if usermessage == k {
 					BotSendMsg(irc.conn, irc.ChannelName, v)
 				}
 			}
