@@ -23,6 +23,7 @@ type BotInfo struct {
 	conn                net.Conn
 	CheckLongMessageCap bool
 	LongMessageCap      int
+	StreamerTimeToggle  bool
 	MakeLog             bool
 	SubResponse         string
 	PurgeForLinks       bool
@@ -58,6 +59,7 @@ func CreateBot() *BotInfo {
 		BotOAuth:            genconfig.BotOAuth,
 		BotName:             genconfig.BotName,
 		LongMessageCap:      genconfig.LongMessageCap,
+		StreamerTimeToggle:  genconfig.StreamerTimeToggle,
 		MakeLog:             genconfig.MakeLog,
 		SubResponse:         genconfig.SubResponse,
 		PurgeForLinks:       genconfig.PurgeForLinks,
@@ -66,7 +68,7 @@ func CreateBot() *BotInfo {
 	}
 }
 
-// All "Load" functions read the files for various chat features, like commands/bannable words.
+// All "Load" functions read the toml files/databases for various chat features, like commands/bannable words.
 
 /* Goofs serve no real purpose. Some chats like to have the bot 'repeat' what the user
 types in, perhaps for a specific emote.*/
@@ -102,17 +104,21 @@ func LoadBadWords() BadWord {
 	return badwords
 }
 
-/*func LoadCustomCommands() CustomCommand {
-		var customcommand CustomCommand
-		database := InitializeDB()
+func LoadCustomCommands() map[string]string {
+	//var customcommand CustomCommand
+	database := InitializeDB()
 
-		rows, _ := database.Query("SELECT CommandName, CommandResponse, CommandPermission FROM commands")
-		cols, _ := rows.Columns()
-		for rows.Next() {
+	rows, _ := database.Query("SELECT CommandName, CommandResponse from commands")
 
-		}
-		return customcommand
-}*/
+	com := map[string]string{}
+	for rows.Next() {
+		var CommandName, CommandResponse string
+		rows.Scan(&CommandName, &CommandResponse)
+		//err = rows.Scan(&CommandName, CommandResponse)
+	}
+	fmt.Println(com)
+	return com
+}
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string) {
@@ -164,7 +170,7 @@ func main() {
 	irc.Connect()
 
 	badwords := LoadBadWords()
-	//customcommand := LoadCustomCommands()
+	com := LoadCustomCommands()
 	goofs := LoadGoofs()
 
 	// Pass info to HTTP request
@@ -266,11 +272,11 @@ func main() {
 				}
 			}
 
-			/*for _, v := range customcommand.CommandResponse {
+			for _, v := range com {
 				if usermessage == v {
 					BotSendMsg(irc.conn, irc.ChannelName, v)
 				}
-			}*/
+			}
 
 			CheckForGoof := strings.Contains(usermessage, "!addgoof")
 			if CheckForGoof == true {
@@ -296,12 +302,18 @@ func main() {
 
 			// Respond to user the current time, currently locked to the computer the bot is running on
 			if usermessage == "!time" {
-				BotSendMsg(irc.conn, irc.ChannelName, datesplit[1]+" "+datesplit[3])
+				if irc.StreamerTimeToggle == true {
+					StreamerTime := strings.Split(datestring, " ")
+					StreamerNameSplit := strings.Split(irc.ChannelName, "#")
+					StreamerString := StreamerNameSplit[1] + "'s" + " time: " + StreamerTime[1] + " " + StreamerTime[3]
+					BotSendMsg(irc.conn, irc.ChannelName, StreamerString)
+				}
 			}
 
 		} else if strings.Contains(line, "USERNOTICE") {
 			// user variables used to split the twitch tag string to get the username
 			if strings.Contains(line, "msg-param-sub-plan") {
+				var SubsCurrentStream []string
 				username1 := strings.Split(line, "display-name=")
 				username2 := strings.Split(username1[1], ";")
 
@@ -309,6 +321,8 @@ func main() {
 				botsubresponse := "@" + username2[0] + " " + irc.SubResponse
 				fmt.Println(botsubresponse)
 				BotSendMsg(irc.conn, irc.ChannelName, botsubresponse)
+				// Append new sub to a list of new subs in current session for logging
+				SubsCurrentStream = append(SubsCurrentStream, username2[0])
 			}
 		}
 
