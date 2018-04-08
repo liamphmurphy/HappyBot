@@ -1,9 +1,7 @@
-This is a simple Twitch bot written in Golang.
+<h1> A word of warning </h1>
+On twitch, most bots do not have special privilages in regards to rules on the website. If you setup your bot using this software in such a way that is against TOS and/or gets your accounts banned, me or any of the other contributors are not responsile. The bot serves a specific purpose, and it is up to the user on how to configure it. 
 
-Just a little side-project because I got interested in Go and wanted to try it out by recreating a project I had done before.
-It seems to run very fast, and can honestly be used in production for some very basic botting.
-
-The name 'HappyBot' came to be because I've spent a fair bit of time watching the BobRoss Twitch stream while working on this bot.
+Thanks :)
 
 <h1> Why make HappyBot? </h1>
 Primary reason was for practice and working on my programming abilities, but I did have a few goals in mind.
@@ -31,12 +29,12 @@ Primary reason was for practice and working on my programming abilities, but I d
 
 Then
 
-`go run bot.go`
+`go run bot.go consoleinput.go`
 
 <h1> Building it </h1>
 
 Though you can just keep using go run, if you want an easy executable, you can build it as well.
 
-`go build bot.go`
+`go build bot.go consoleinput.go`
 
 <b> This will build a executable based off of your OS. Exe for Windows, sh for Linux etc.
