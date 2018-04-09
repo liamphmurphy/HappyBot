@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"net/textproto"
 	"os"
@@ -114,16 +115,29 @@ func LoadCustomCommands() map[string]string {
 	for rows.Next() {
 		var CommandName, CommandResponse string
 		rows.Scan(&CommandName, &CommandResponse)
-		fmt.Println(CommandName, CommandResponse)
 		com[CommandName] = CommandResponse
 	}
-	fmt.Println(com)
 	return com
+}
+
+func LoadQuotes() map[string]string {
+	fmt.Println("Its quoting time.")
+	database := InitializeDB()
+	rows, _ := database.Query("SELECT QuoteID, QuoteContent from quotes")
+
+	quotes := map[string]string{}
+	for rows.Next() {
+		var QuoteID string
+		var QuoteContent string
+		rows.Scan(&QuoteID, &QuoteContent)
+		quotes[QuoteID] = QuoteContent
+	}
+	return quotes
 }
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string) {
-	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
 // Write to log function, will run when set to true in config
@@ -139,6 +153,20 @@ func InitializeDB() *sql.DB {
 		fmt.Printf("Error: %s", err)
 	}
 	return database
+}
+
+func TimeCommands(TimeSetting string, conn net.Conn, channel string) string {
+	currenttime := time.Now()
+	datestring := currenttime.String()
+	//datesplit := strings.Split(datestring, " ")
+
+	if TimeSetting == "StreamerTime" {
+		NewTime := currenttime.Format("3:04 PM MST") // Does not actually = 3:04 PM, golang pattern matching used here
+		StreamerNameSplit := strings.Split(channel, "#")
+		StreamerString := StreamerNameSplit[1] + "'s" + " time: " + NewTime
+		BotSendMsg(conn, channel, StreamerString)
+	}
+	return datestring
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -173,6 +201,7 @@ func main() {
 	badwords := LoadBadWords()
 	com := LoadCustomCommands()
 	goofs := LoadGoofs()
+	quotes := LoadQuotes()
 
 	// Pass info to HTTP request
 	fmt.Fprintf(irc.conn, "PASS %s\r\n", irc.BotOAuth)
@@ -193,7 +222,6 @@ func main() {
 	currenttime := time.Now()
 	datestring := currenttime.String()
 	datesplit := strings.Split(datestring, " ")
-
 	for {
 		line, err := proto.ReadLine()
 		if err != nil {
@@ -279,6 +307,17 @@ func main() {
 				}
 			}
 
+			for k, v := range quotes {
+				if usermessage == "!quote "+k {
+					BotSendMsg(irc.conn, irc.ChannelName, v)
+				}
+				if usermessage == "!quote" {
+					i := rand.Intn(len(k))
+					fmt.Println(i)
+
+				}
+			}
+
 			CheckForGoof := strings.Contains(usermessage, "!addgoof")
 			if CheckForGoof == true {
 				statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS goofs (GoofID INTEGER PRIMARY KEY, GoofName text)")
@@ -304,10 +343,7 @@ func main() {
 			// Respond to user the current time, currently locked to the computer the bot is running on
 			if usermessage == "!time" {
 				if irc.StreamerTimeToggle == true {
-					StreamerTime := strings.Split(datestring, " ")
-					StreamerNameSplit := strings.Split(irc.ChannelName, "#")
-					StreamerString := StreamerNameSplit[1] + "'s" + " time: " + StreamerTime[1] + " " + StreamerTime[3]
-					BotSendMsg(irc.conn, irc.ChannelName, StreamerString)
+					TimeCommands("StreamerTime", irc.conn, irc.ChannelName)
 				}
 			}
 

@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 )
 
 func ConsoleInput(conn net.Conn, channel string) {
@@ -88,6 +89,33 @@ func ConsoleInput(conn net.Conn, channel string) {
 			fmt.Println(badwords.BadwordSlice)
 		}
 	}
+
+	ChatAddComCheck := strings.Contains(text, "!addcom")
+	if ChatAddComCheck == true {
+		CommandSplit := strings.Split(text, "-")
+
+		if len(CommandSplit) <= 1 { // If len to handle index out of range error
+			fmt.Println("Please type a proper command.")
+		} else {
+			fmt.Println(CommandSplit[1])
+			fmt.Println(CommandSplit[2])
+		}
+	}
+
+	ChatAddQuoteCheck := strings.Contains(text, "!addquote")
+	if ChatAddQuoteCheck == true {
+		QuoteSplit := strings.Split(text, "!addquote ")
+
+		if len(QuoteSplit) <= 1 {
+			fmt.Println("Please type a new quote. ")
+		} else {
+			currenttime := time.Now()
+			datestring := currenttime.String()
+			NewQuote := QuoteSplit[1] + " -- " + datestring
+			fmt.Println(NewQuote)
+		}
+	}
+
 	ExitCheck := strings.Contains(text, "!exit")
 	if ExitCheck == true {
 		os.Exit(3)
