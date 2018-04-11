@@ -87,6 +87,7 @@ func LoadGoofs() Goof {
 	return goofs
 }
 
+// Loads all words that are to be banned: if user types bad word in chat, the user is banned.
 func LoadBadWords() BadWord {
 	var badwords BadWord
 	database := InitializeDB()
@@ -105,6 +106,7 @@ func LoadBadWords() BadWord {
 	return badwords
 }
 
+// Load all custom commands not included with the bot by default.
 func LoadCustomCommands() map[string]string {
 	//var customcommand CustomCommand
 	database := InitializeDB()
@@ -120,6 +122,7 @@ func LoadCustomCommands() map[string]string {
 	return com
 }
 
+// Load all quotes custom made by the user.
 func LoadQuotes() map[string]string {
 	fmt.Println("Its quoting time.")
 	database := InitializeDB()
@@ -137,10 +140,10 @@ func LoadQuotes() map[string]string {
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string) {
-	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
-// Write to log function, will run when set to true in config
+// Write to log function, when called, will run when set to true in config.
 func WriteToLog(log string, text string) {
 	f, _ := os.OpenFile(log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	f.WriteString(text)
@@ -155,6 +158,7 @@ func InitializeDB() *sql.DB {
 	return database
 }
 
+// Series of commands to do with time, like uptime.
 func TimeCommands(TimeSetting string, conn net.Conn, channel string) string {
 	currenttime := time.Now()
 	datestring := currenttime.String()
@@ -246,12 +250,15 @@ func main() {
 			// Display the whole cleaned up message
 			fmt.Printf(username[2] + ": " + usermessage + "\n")
 
+			// Check if user set MakeLog in config.toml to true, if so, run
 			if irc.MakeLog == true {
+				// Use current date to mark which day the chat log is for
 				loglocation := "logs/chat/" + datesplit[0] + ".txt"
 				logmessage := (username[2] + ": " + usermessage + "\n")
 				WriteToLog(loglocation, logmessage)
 			}
 
+			// Check if user set CheckLongMessageCap in config.toml to true, if so, run
 			if irc.CheckLongMessageCap == true {
 				if len(usermessage) > irc.LongMessageCap {
 					fmt.Println("Very long message detected.")
@@ -268,6 +275,7 @@ func main() {
 				userbadges2 := strings.Split(userbadges1[1], ";")
 				if strings.Contains(usermessage, v) {
 					if irc.PurgeForLinks == true {
+						// Check for different types of user badges (should find a better way to check this)
 						if strings.Contains(userbadges2[0], "subscriber") {
 							fmt.Println("Link permitted: Sub.")
 							fmt.Println("userbadge is: " + userbadges2[0])
@@ -286,7 +294,8 @@ func main() {
 					}
 				}
 			}
-			// Check for occurences of values from arrays/maps etc
+			
+			// Check for occurences of values from arrays/slices/maps etc
 
 			for _, v := range goofs.GoofSlice {
 				if usermessage == v {
@@ -318,14 +327,17 @@ func main() {
 				}
 			}
 
+			// Check if user typed in !addgofo in the chat
 			CheckForGoof := strings.Contains(usermessage, "!addgoof")
 			if CheckForGoof == true {
+				// SQL statement: create goofs table if it does not exist into db
 				statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS goofs (GoofID INTEGER PRIMARY KEY, GoofName text)")
 				if err != nil {
 					fmt.Printf("Error: %s", err)
 				}
-				statement.Exec()
+				statement.Exec() // Needed to execute previous declaration of statement 
 
+				// Split data to separate username from value to use as new goof
 				GoofSplit := strings.Split(usermessage, " ")
 				GoofString := string(GoofSplit[1])
 				fmt.Println(GoofSplit[1])
@@ -334,7 +346,8 @@ func main() {
 				if err != nil {
 					fmt.Printf("Error: %s", err)
 				}
-				statement.Exec(GoofString)
+				statement.Exec(GoofString) // Inserts value of GoofString into the (?) in previous SQL statement
+				
 				// Append to the slice in this run session to make it useable right away
 				goofs.GoofSlice = append(goofs.GoofSlice, GoofString)
 
