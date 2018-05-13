@@ -304,17 +304,16 @@ func main() {
 				if strings.Contains(usermessage, v) {
 					if irc.PurgeForLinks == true {
 						// Check for different types of user badges (should find a better way to check this)
-						if strings.Contains(userbadges2[0], "subscriber") {
+						if CheckUserStatus(line, "subscriber") == "true" {
 							fmt.Println("Link permitted: Sub.")
 							fmt.Println("userbadge is: " + userbadges2[0])
 						}
-						if strings.Contains(userbadges2[0], "moderator") {
+						if CheckUserStatus(line, "moderator") == "true" {
 							fmt.Println("Link permitted: Moderator.")
 						}
-						if strings.Contains(userbadges2[0], "broadcaster") {
+						if CheckUserStatus(line, "broadcaster") == "true" {
 							fmt.Println("Link permitted: Broadcaster.")
-						}
-						if strings.Contains(userbadges2[0], "") {
+						} else {
 							botresponse := "/timeout " + username[2] + " 1" + " Link when not a mod."
 							BotSendMsg(irc.conn, irc.ChannelName, botresponse)
 							BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" please ask for permission to post a link.")
