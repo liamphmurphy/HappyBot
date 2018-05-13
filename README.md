@@ -26,6 +26,8 @@ Primary reason was for practice and working on my programming abilities, but I d
 <h1> To run it </h1>
 
 `go get github.com/BurntSushi/toml`
+ 
+`go get github.com/mattn/go-sqlite3`
 
 Then
 
