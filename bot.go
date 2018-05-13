@@ -186,6 +186,21 @@ func AddQuote(conn net.Conn, channel string, message string, usermessage string)
 	BotSendMsg(conn, channel, "Quote added!")
 }
 
+func CheckUserStatus(chatmessage string, permcheck string) string {
+
+	userbadges1 := strings.Split(chatmessage, "@badges=")
+	userbadges2 := strings.Split(userbadges1[1], ";")
+	strings.Contains(userbadges2[0], permcheck)
+	if strings.Contains(userbadges2[0], permcheck) {
+		boolcheck := "true"
+		return boolcheck
+	} else {
+		boolcheck := "false"
+		return boolcheck
+	}
+	return ""
+}
+
 /* ConsoleInput function for reading user input in cmd line when
    program is running */
 
@@ -379,11 +394,9 @@ func main() {
 			CheckForAddQuote := strings.Contains(usermessage, "!addquote")
 			if CheckForAddQuote == true {
 				// Check if user is moderator or broadcaster
-				userbadges1 := strings.Split(line, "@badges=")
-				userbadges2 := strings.Split(userbadges1[1], ";")
-				if strings.Contains(userbadges2[0], "moderator") {
+				if CheckUserStatus(line, "moderator") == "true" {
 					AddQuote(irc.conn, irc.ChannelName, line, usermessage)
-				} else if strings.Contains(userbadges2[0], "broadcaster") {
+				} else if CheckUserStatus(line, "broadcaster") == "true" {
 					AddQuote(irc.conn, irc.ChannelName, line, usermessage)
 				} else {
 					BotSendMsg(irc.conn, irc.ChannelName, "Must be a moderator to add a new quote.")
