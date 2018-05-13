@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"math/rand"
 	"net"
 	"net/textproto"
 	"os"
@@ -121,7 +120,6 @@ func LoadCustomCommands() map[string]string {
 }
 
 func LoadQuotes() map[string]string {
-	fmt.Println("Its quoting time.")
 	database := InitializeDB()
 	rows, _ := database.Query("SELECT QuoteID, QuoteContent from quotes")
 
@@ -137,7 +135,7 @@ func LoadQuotes() map[string]string {
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string) {
-	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
 }
 
 // Write to log function, will run when set to true in config
@@ -311,10 +309,19 @@ func main() {
 				if usermessage == "!quote "+k {
 					BotSendMsg(irc.conn, irc.ChannelName, v)
 				}
-				if usermessage == "!quote" {
-					i := rand.Intn(len(k))
-					fmt.Println(i)
 
+			}
+			if usermessage == "!quote" {
+				rows, err := database.Query("SELECT QuoteID, QuoteContent from quotes ORDER BY RANDOM() LIMIT 1;")
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+				}
+				for rows.Next() {
+					var QuoteID string
+					var QuoteContent string
+					rows.Scan(&QuoteID, &QuoteContent)
+					quotes[QuoteID] = QuoteContent
+					BotSendMsg(irc.conn, irc.ChannelName, QuoteContent)
 				}
 			}
 
@@ -338,6 +345,21 @@ func main() {
 				// Append to the slice in this run session to make it useable right away
 				goofs.GoofSlice = append(goofs.GoofSlice, GoofString)
 
+			}
+
+			CheckForAddQuote := strings.Contains(usermessage, "!addquote")
+			if CheckForAddQuote == true {
+				QuoteSplit := strings.Split(usermessage, "!addquote ")
+				currenttime := time.Now()
+				NewTime := currenttime.Format("2006-01-02")
+				NewQuote := QuoteSplit[1] + " - " + NewTime
+				fmt.Println(NewQuote)
+
+				statement, err = database.Prepare("INSERT INTO quotes (QuoteContent) VALUES (?)")
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+				}
+				statement.Exec(NewQuote)
 			}
 
 			// Respond to user the current time, currently locked to the computer the bot is running on
