@@ -171,6 +171,21 @@ func TimeCommands(TimeSetting string, conn net.Conn, channel string) string {
 	return datestring
 }
 
+func AddQuote(conn net.Conn, channel string, message string, usermessage string) {
+	database := InitializeDB()
+
+	QuoteSplit := strings.Split(usermessage, "!addquote ")
+	currenttime := time.Now()
+	NewTime := currenttime.Format("2006-01-02")
+	NewQuote := QuoteSplit[1] + " - " + NewTime
+	statement, err := database.Prepare("INSERT INTO quotes (QuoteContent) VALUES (?)")
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+	statement.Exec(NewQuote)
+	BotSendMsg(conn, channel, "Quote added!")
+}
+
 /* ConsoleInput function for reading user input in cmd line when
    program is running */
 
@@ -292,7 +307,7 @@ func main() {
 					}
 				}
 			}
-			
+
 			// Check for occurences of values from arrays/slices/maps etc
 
 			for _, v := range goofs.GoofSlice {
@@ -342,7 +357,7 @@ func main() {
 				if err != nil {
 					fmt.Printf("Error: %s", err)
 				}
-				statement.Exec() // Needed to execute previous declaration of statement 
+				statement.Exec() // Needed to execute previous declaration of statement
 
 				// Split data to separate username from value to use as new goof
 				GoofSplit := strings.Split(usermessage, " ")
@@ -354,25 +369,26 @@ func main() {
 					fmt.Printf("Error: %s", err)
 				}
 				statement.Exec(GoofString) // Inserts value of GoofString into the (?) in previous SQL statement
-				
+
 				// Append to the slice in this run session to make it useable right away
 				goofs.GoofSlice = append(goofs.GoofSlice, GoofString)
 
 			}
 
+			// Check if usermessage has !addquote in it
 			CheckForAddQuote := strings.Contains(usermessage, "!addquote")
 			if CheckForAddQuote == true {
-				QuoteSplit := strings.Split(usermessage, "!addquote ")
-				currenttime := time.Now()
-				NewTime := currenttime.Format("2006-01-02")
-				NewQuote := QuoteSplit[1] + " - " + NewTime
-				fmt.Println(NewQuote)
-
-				statement, err = database.Prepare("INSERT INTO quotes (QuoteContent) VALUES (?)")
-				if err != nil {
-					fmt.Printf("Error: %s", err)
+				// Check if user is moderator or broadcaster
+				userbadges1 := strings.Split(line, "@badges=")
+				userbadges2 := strings.Split(userbadges1[1], ";")
+				if strings.Contains(userbadges2[0], "moderator") {
+					AddQuote(irc.conn, irc.ChannelName, line, usermessage)
+				} else if strings.Contains(userbadges2[0], "broadcaster") {
+					AddQuote(irc.conn, irc.ChannelName, line, usermessage)
+				} else {
+					BotSendMsg(irc.conn, irc.ChannelName, "Must be a moderator to add a new quote.")
 				}
-				statement.Exec(NewQuote)
+
 			}
 
 			// Respond to user the current time, currently locked to the computer the bot is running on
