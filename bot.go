@@ -31,8 +31,9 @@ type BotInfo struct {
 }
 
 type CustomCommand struct {
-	CommandName     []string
-	CommandResponse []string
+	CommandName       string
+	CommandResponse   string
+	CommandPermission string
 }
 
 type BadWord struct {
@@ -105,17 +106,39 @@ func LoadBadWords() BadWord {
 	return badwords
 }
 
+func MakeCommand(response, permission string) *CustomCommand {
+	return &CustomCommand{
+		CommandResponse:   response,
+		CommandPermission: permission,
+	}
+}
+
+func LoadCommands() map[string]*CustomCommand {
+	database := InitializeDB()
+
+	rows, _ := database.Query("SELECT CommandName, CommandResponse, CommandPermission from commands")
+
+	com := make(map[string]*CustomCommand)
+	for rows.Next() {
+		var CommandName, CommandResponse, CommandPermission string
+		rows.Scan(&CommandName, &CommandResponse, &CommandPermission)
+		com[CommandName] = MakeCommand(CommandResponse, CommandPermission)
+	}
+	fmt.Println(com)
+	return com
+}
+
 // Load all custom commands not included with the bot by default.
 func LoadCustomCommands() map[string]string {
 	//var customcommand CustomCommand
 	database := InitializeDB()
 
-	rows, _ := database.Query("SELECT CommandName, CommandResponse from commands")
+	rows, _ := database.Query("SELECT CommandName, CommandResponse, CommandPermission from commands")
 
 	com := map[string]string{}
 	for rows.Next() {
-		var CommandName, CommandResponse string
-		rows.Scan(&CommandName, &CommandResponse)
+		var CommandName, CommandResponse, CommandPermission string
+		rows.Scan(&CommandName, &CommandResponse, &CommandPermission)
 		com[CommandName] = CommandResponse
 	}
 	return com
@@ -231,7 +254,7 @@ func main() {
 	irc.Connect()
 
 	badwords := LoadBadWords()
-	com := LoadCustomCommands()
+	com := LoadCommands()
 	goofs := LoadGoofs()
 	quotes := LoadQuotes()
 
@@ -339,7 +362,9 @@ func main() {
 
 			for k, v := range com {
 				if usermessage == k {
-					BotSendMsg(irc.conn, irc.ChannelName, v)
+					if CheckUserStatus(line, v.CommandPermission) == "true" {
+						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse)
+					}
 				}
 			}
 
