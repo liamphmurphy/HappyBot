@@ -16,18 +16,19 @@ import (
 )
 
 type BotInfo struct {
-	ChannelName         string
-	ServerName          string
-	BotOAuth            string
-	BotName             string
-	conn                net.Conn
-	CheckLongMessageCap bool
-	LongMessageCap      int
-	StreamerTimeToggle  bool
-	MakeLog             bool
-	SubResponse         string
-	PurgeForLinks       bool
-	LinkChecks          []string
+	ChannelName                 string
+	ServerName                  string
+	BotOAuth                    string
+	BotName                     string
+	conn                        net.Conn
+	LetModeratorsUseAllCommands bool
+	CheckLongMessageCap         bool
+	LongMessageCap              int
+	StreamerTimeToggle          bool
+	MakeLog                     bool
+	SubResponse                 string
+	PurgeForLinks               bool
+	LinkChecks                  []string
 }
 
 type CustomCommand struct {
@@ -55,17 +56,18 @@ func CreateBot() *BotInfo {
 	}
 
 	return &BotInfo{
-		ChannelName:         genconfig.ChannelName,
-		ServerName:          genconfig.ServerName,
-		BotOAuth:            genconfig.BotOAuth,
-		BotName:             genconfig.BotName,
-		LongMessageCap:      genconfig.LongMessageCap,
-		StreamerTimeToggle:  genconfig.StreamerTimeToggle,
-		MakeLog:             genconfig.MakeLog,
-		SubResponse:         genconfig.SubResponse,
-		PurgeForLinks:       genconfig.PurgeForLinks,
-		LinkChecks:          genconfig.LinkChecks,
-		CheckLongMessageCap: genconfig.CheckLongMessageCap,
+		ChannelName:                 genconfig.ChannelName,
+		ServerName:                  genconfig.ServerName,
+		BotOAuth:                    genconfig.BotOAuth,
+		BotName:                     genconfig.BotName,
+		LetModeratorsUseAllCommands: genconfig.LetModeratorsUseAllCommands,
+		LongMessageCap:              genconfig.LongMessageCap,
+		StreamerTimeToggle:          genconfig.StreamerTimeToggle,
+		MakeLog:                     genconfig.MakeLog,
+		SubResponse:                 genconfig.SubResponse,
+		PurgeForLinks:               genconfig.PurgeForLinks,
+		LinkChecks:                  genconfig.LinkChecks,
+		CheckLongMessageCap:         genconfig.CheckLongMessageCap,
 	}
 }
 
@@ -106,28 +108,7 @@ func LoadBadWords() BadWord {
 	return badwords
 }
 
-func MakeCommand(response, permission string) *CustomCommand {
-	return &CustomCommand{
-		CommandResponse:   response,
-		CommandPermission: permission,
-	}
-}
-
-func LoadCommands() map[string]*CustomCommand {
-	database := InitializeDB()
-
-	rows, _ := database.Query("SELECT CommandName, CommandResponse, CommandPermission from commands")
-
-	com := make(map[string]*CustomCommand)
-	for rows.Next() {
-		var CommandName, CommandResponse, CommandPermission string
-		rows.Scan(&CommandName, &CommandResponse, &CommandPermission)
-		com[CommandName] = MakeCommand(CommandResponse, CommandPermission)
-	}
-	return com
-}
-
-// Load all quotes custom made by the user.
+// LoadQuotes grabs all quotes from sqlite3 db.
 func LoadQuotes() map[string]string {
 	database := InitializeDB()
 	rows, _ := database.Query("SELECT QuoteID, QuoteContent from quotes")
@@ -192,7 +173,8 @@ func AddQuote(conn net.Conn, channel string, message string, usermessage string)
 	BotSendMsg(conn, channel, "Quote added!")
 }
 
-func CheckUserStatus(chatmessage string, permcheck string) string {
+// CheckUserStatus checks if user is allowed to run a command
+func CheckUserStatus(chatmessage string, permcheck string, irc *BotInfo) string {
 
 	userbadges1 := strings.Split(chatmessage, "@badges=")
 	userbadges2 := strings.Split(userbadges1[1], ";")
@@ -202,6 +184,17 @@ func CheckUserStatus(chatmessage string, permcheck string) string {
 		return boolcheck
 	}
 	if strings.Contains(userbadges2[0], "all") {
+		boolcheck := "true"
+		return boolcheck
+	}
+	if irc.LetModeratorsUseAllCommands == true {
+		if strings.Contains(userbadges2[0], "moderator") {
+			boolcheck := "true"
+			return boolcheck
+		}
+	}
+
+	if strings.Contains(userbadges2[0], "broadcaster") {
 		boolcheck := "true"
 		return boolcheck
 	} else {
@@ -314,14 +307,14 @@ func main() {
 				if strings.Contains(usermessage, v) {
 					if irc.PurgeForLinks == true {
 						// Check for different types of user badges (should find a better way to check this)
-						if CheckUserStatus(line, "subscriber") == "true" {
+						if CheckUserStatus(line, "subscriber", irc) == "true" {
 							fmt.Println("Link permitted: Sub.")
 							fmt.Println("userbadge is: " + userbadges2[0])
 						}
-						if CheckUserStatus(line, "moderator") == "true" {
+						if CheckUserStatus(line, "moderator", irc) == "true" {
 							fmt.Println("Link permitted: Moderator.")
 						}
-						if CheckUserStatus(line, "broadcaster") == "true" {
+						if CheckUserStatus(line, "broadcaster", irc) == "true" {
 							fmt.Println("Link permitted: Broadcaster.")
 						} else {
 							botresponse := "/timeout " + username[2] + " 1" + " Link when not a mod."
@@ -349,7 +342,7 @@ func main() {
 
 			for k, v := range com {
 				if usermessage == k {
-					if CheckUserStatus(line, v.CommandPermission) == "true" {
+					if CheckUserStatus(line, v.CommandPermission, irc) == "true" {
 						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse)
 					}
 				}
@@ -405,9 +398,9 @@ func main() {
 			CheckForAddQuote := strings.Contains(usermessage, "!addquote")
 			if CheckForAddQuote == true {
 				// Check if user is moderator or broadcaster
-				if CheckUserStatus(line, "moderator") == "true" {
+				if CheckUserStatus(line, "moderator", irc) == "true" {
 					AddQuote(irc.conn, irc.ChannelName, line, usermessage)
-				} else if CheckUserStatus(line, "broadcaster") == "true" {
+				} else if CheckUserStatus(line, "broadcaster", irc) == "true" {
 					AddQuote(irc.conn, irc.ChannelName, line, usermessage)
 				} else {
 					BotSendMsg(irc.conn, irc.ChannelName, "Must be a moderator to add a new quote.")

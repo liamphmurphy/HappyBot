@@ -1,13 +1,15 @@
-ChannelName = "#"
+ChannelName = "#lphm"
 ServerName = "irc.chat.twitch.tv:6667"
-# Oauth from TWitch here
-BotOAuth = ""
+# Oauth from Twitch here
+BotOAuth = "oauth:g438gb4qn6fnhhevoofl3qzrtoxwh7"
 BotName = "#"
 ##### CHAT PROPERTIES #####
+LetModeratorsUseAllCommands = true # This allows a moderator to use any command, including broadcaster specific commands.
+
 CheckLongMessageCap = true
 LongMessageCap = 300
 
-StreamerTimeToggle = false # Toggle whether !time is enabled or not
+StreamerTimeToggle = true # Toggle whether !time is enabled or not
 
 MakeLog = false  # Disabled by default, logs can take up space fast depending on chat activity
 
