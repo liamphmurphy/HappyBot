@@ -124,23 +124,6 @@ func LoadCommands() map[string]*CustomCommand {
 		rows.Scan(&CommandName, &CommandResponse, &CommandPermission)
 		com[CommandName] = MakeCommand(CommandResponse, CommandPermission)
 	}
-	fmt.Println(com)
-	return com
-}
-
-// Load all custom commands not included with the bot by default.
-func LoadCustomCommands() map[string]string {
-	//var customcommand CustomCommand
-	database := InitializeDB()
-
-	rows, _ := database.Query("SELECT CommandName, CommandResponse, CommandPermission from commands")
-
-	com := map[string]string{}
-	for rows.Next() {
-		var CommandName, CommandResponse, CommandPermission string
-		rows.Scan(&CommandName, &CommandResponse, &CommandPermission)
-		com[CommandName] = CommandResponse
-	}
 	return com
 }
 
@@ -215,6 +198,10 @@ func CheckUserStatus(chatmessage string, permcheck string) string {
 	userbadges2 := strings.Split(userbadges1[1], ";")
 	strings.Contains(userbadges2[0], permcheck)
 	if strings.Contains(userbadges2[0], permcheck) {
+		boolcheck := "true"
+		return boolcheck
+	}
+	if strings.Contains(userbadges2[0], "all") {
 		boolcheck := "true"
 		return boolcheck
 	} else {
