@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/csv"
 	"fmt"
 	"net"
 	"os"
@@ -9,10 +10,27 @@ import (
 	"time"
 )
 
-func ConsoleInput(conn net.Conn, channel string) {
+func ConsoleInput(conn net.Conn, channel string, name string) {
 	ConsoleScanner := bufio.NewScanner(os.Stdin)
 	ConsoleScanner.Scan()
 	text := ConsoleScanner.Text()
+
+	if strings.Contains(text, "!dumpcommands") {
+		database := InitializeDB()
+
+		rows, _ := database.Query("SELECT CommandName, CommandResponse, CommandPermission from commands")
+
+		file, _ := os.Create("commands.csv")
+		defer file.Close()
+
+		writer := csv.NewWriter(file)
+		defer writer.Flush()
+		for rows.Next() {
+			var CommandName, CommandResponse, CommandPermission string
+			rows.Scan(&CommandName, &CommandResponse, &CommandPermission)
+
+		}
+	}
 
 	ChatMsgCheck := strings.Contains(text, "!msg")
 	if ChatMsgCheck == true {
@@ -20,13 +38,18 @@ func ConsoleInput(conn net.Conn, channel string) {
 		if len(MsgSplit) <= 1 { // Len if to handle index out of range error
 			fmt.Println("Please type a message.")
 		} else {
-			BotSendMsg(conn, channel, MsgSplit[1])
+			BotSendMsg(conn, channel, MsgSplit[1], name)
 		}
 	}
 
 	ChatHelpCheck := strings.Contains(text, "!help")
 	if ChatHelpCheck == true {
-		fmt.Println("Current console options: !msg <text message to send to chat>")
+		fmt.Println("Current console options: ")
+		fmt.Println("!msg - This command followed by an text afterward will be posted by the bot in chat.")
+		fmt.Println("!exit - This closes the bot safely. You may also use the 'CTRL+' shortcut.")
+		fmt.Println("!ban - This command followed by a username will ban the user from your channel.")
+		fmt.Println("!unban - This command followed by a username will unban the user from your channel.")
+
 	}
 
 	ChatBanCheck := strings.Contains(text, "!ban")
@@ -36,7 +59,7 @@ func ConsoleInput(conn net.Conn, channel string) {
 		if len(UsernameSplit) <= 1 { // If len to handle index out of range error
 			fmt.Println("Please type a username.")
 		} else {
-			BotSendMsg(conn, channel, "/ban "+UsernameSplit[1])
+			BotSendMsg(conn, channel, "/ban "+UsernameSplit[1], name)
 			fmt.Println(UsernameSplit[1] + " has been banned.")
 		}
 	}
@@ -48,7 +71,7 @@ func ConsoleInput(conn net.Conn, channel string) {
 		if len(UsernameSplit) <= 1 { // If len to handle index out of range error
 			fmt.Println("Please type a username.")
 		} else {
-			BotSendMsg(conn, channel, "/unban "+UsernameSplit[1])
+			BotSendMsg(conn, channel, "/unban "+UsernameSplit[1], name)
 			fmt.Println(UsernameSplit[1] + " has been unbanned.")
 		}
 	}
@@ -62,7 +85,7 @@ func ConsoleInput(conn net.Conn, channel string) {
 		} else {
 			ChatCommand := ("/timeout " + UsernameSplit[1] + " 1" + " Message over max character limit.")
 			fmt.Println(ChatCommand)
-			BotSendMsg(conn, channel, ChatCommand)
+			BotSendMsg(conn, channel, ChatCommand, name)
 			fmt.Println(UsernameSplit[1] + " has been purged.")
 		}
 	}
@@ -110,8 +133,8 @@ func ConsoleInput(conn net.Conn, channel string) {
 			fmt.Println("Please type a new quote. ")
 		} else {
 			currenttime := time.Now()
-			datestring := currenttime.String()
-			NewQuote := QuoteSplit[1] + " -- " + datestring
+			NewTime := currenttime.Format("2006-01-02")
+			NewQuote := QuoteSplit[1] + " - " + NewTime
 			fmt.Println(NewQuote)
 		}
 	}

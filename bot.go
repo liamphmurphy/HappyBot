@@ -37,6 +37,12 @@ type CustomCommand struct {
 	CommandPermission string
 }
 
+type CustomTimedCommand struct {
+	TimedName     string
+	TimedResponse string
+	Timer         time.Duration
+}
+
 type BadWord struct {
 	BadWordItem  string
 	BadwordSlice []string
@@ -52,7 +58,7 @@ func CreateBot() *BotInfo {
 	var genconfig BotInfo
 	_, conferr := toml.DecodeFile("config/config.toml", &genconfig)
 	if conferr != nil {
-		fmt.Println("Can't read toml file due to:", conferr)
+		fmt.Println("Can't read toml file due to: ", conferr)
 	}
 
 	return &BotInfo{
@@ -123,11 +129,6 @@ func LoadQuotes() map[string]string {
 	return quotes
 }
 
-// Function used throughout the program for the bot to send IRC messages
-func BotSendMsg(conn net.Conn, channel string, message string) {
-	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
-}
-
 // Write to log function, when called, will run when set to true in config.
 func WriteToLog(log string, text string) {
 	f, _ := os.OpenFile(log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -144,21 +145,42 @@ func InitializeDB() *sql.DB {
 }
 
 // Series of commands to do with time, like uptime.
-func TimeCommands(TimeSetting string, conn net.Conn, channel string) string {
+func TimeCommands(TimeSetting string, conn net.Conn, channel string, name string, username string) string {
 	currenttime := time.Now()
 	datestring := currenttime.String()
 	//datesplit := strings.Split(datestring, " ")
 
+	// Uses system time instead of twitch api data.
 	if TimeSetting == "StreamerTime" {
 		NewTime := currenttime.Format("3:04 PM MST") // Does not actually = 3:04 PM, golang pattern matching used here
 		StreamerNameSplit := strings.Split(channel, "#")
 		StreamerString := StreamerNameSplit[1] + "'s" + " time: " + NewTime
-		BotSendMsg(conn, channel, StreamerString)
+		BotSendMsg(conn, channel, StreamerString, name)
+	}
+
+	if TimeSetting == "Uptime" {
+		//UseAPI()
+		s := GetAllData(conn, channel, name)
+		if len(s.Data) > 0 {
+			for _, val := range s.Data {
+				timeSince := time.Since(val.StartedAt)
+				sinceSplit := strings.Split(timeSince.String(), ".")
+				newMessage := "@" + username + " " + sinceSplit[0]
+				BotSendMsg(conn, channel, newMessage, name)
+			}
+		} else {
+			BotSendMsg(conn, channel, "Stream is not live.", name)
+		}
 	}
 	return datestring
 }
 
-func AddQuote(conn net.Conn, channel string, message string, usermessage string) {
+func SplitChannelName(channel string) string {
+	newChannel := strings.Split(channel, "#")
+	return newChannel[1]
+}
+
+func AddQuote(conn net.Conn, channel string, message string, usermessage string, name string) {
 	database := InitializeDB()
 
 	QuoteSplit := strings.Split(usermessage, "!addquote ")
@@ -170,7 +192,7 @@ func AddQuote(conn net.Conn, channel string, message string, usermessage string)
 		fmt.Printf("Error: %s", err)
 	}
 	statement.Exec(NewQuote)
-	BotSendMsg(conn, channel, "Quote added!")
+	BotSendMsg(conn, channel, "Quote added!", name)
 }
 
 // CheckUserStatus checks if user is allowed to run a command
@@ -202,6 +224,12 @@ func CheckUserStatus(chatmessage string, permcheck string, irc *BotInfo) string 
 		return boolcheck
 	}
 	return ""
+}
+
+// Function used throughout the program for the bot to send IRC messages
+func BotSendMsg(conn net.Conn, channel string, message string, name string) {
+	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	fmt.Println(name + ": " + message) // Dispaly bot's message in terminal
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -258,6 +286,7 @@ func main() {
 	datestring := currenttime.String()
 	datesplit := strings.Split(datestring, " ")
 	for {
+
 		line, err := proto.ReadLine()
 		if err != nil {
 			break
@@ -265,7 +294,7 @@ func main() {
 
 		/* Run ConsoleInput on new thread
 		Allows user to type commands into terminal window */
-		go ConsoleInput(irc.conn, irc.ChannelName)
+		go ConsoleInput(irc.conn, irc.ChannelName, irc.BotName)
 
 		// When Twitch servers send a ping, respond with pong to avoid disconnections.
 		if strings.Contains(line, "PING") {
@@ -294,8 +323,8 @@ func main() {
 				if len(usermessage) > irc.LongMessageCap {
 					fmt.Println("Very long message detected.")
 					botresponse := "/timeout " + username[1] + " 1" + "Message over max character limit."
-					BotSendMsg(irc.conn, irc.ChannelName, botresponse)
-					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[1]+" please shorten your message")
+					BotSendMsg(irc.conn, irc.ChannelName, botresponse, irc.BotName)
+					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[1]+" please shorten your message", irc.BotName)
 
 				}
 			}
@@ -317,9 +346,10 @@ func main() {
 						if CheckUserStatus(line, "broadcaster", irc) == "true" {
 							fmt.Println("Link permitted: Broadcaster.")
 						} else {
-							botresponse := "/timeout " + username[2] + " 1" + " Link when not a mod."
-							BotSendMsg(irc.conn, irc.ChannelName, botresponse)
-							BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" please ask for permission to post a link.")
+							botresponse := "/timeout " + username[2] + " 1"
+							BotSendMsg(irc.conn, irc.ChannelName, botresponse, irc.BotName)
+							BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" please ask for permission to post a link.", irc.BotName)
+							fmt.Println(botresponse)
 						}
 					}
 				}
@@ -329,28 +359,28 @@ func main() {
 
 			for _, v := range goofs.GoofSlice {
 				if usermessage == v {
-					BotSendMsg(irc.conn, irc.ChannelName, v)
+					BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
 				}
 			}
 
 			for _, v := range badwords.BadwordSlice {
 				if strings.Contains(usermessage, v) {
 					fmt.Println(username[2], "has been banned.")
-					BotSendMsg(irc.conn, irc.ChannelName, "/ban "+username[2])
+					BotSendMsg(irc.conn, irc.ChannelName, "/ban "+username[2], irc.BotName)
 				}
 			}
 
 			for k, v := range com {
 				if usermessage == k {
 					if CheckUserStatus(line, v.CommandPermission, irc) == "true" {
-						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse)
+						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse, irc.BotName)
 					}
 				}
 			}
 
 			for k, v := range quotes {
 				if usermessage == "!quote "+k {
-					BotSendMsg(irc.conn, irc.ChannelName, v)
+					BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
 				}
 
 			}
@@ -364,11 +394,11 @@ func main() {
 					var QuoteContent string
 					rows.Scan(&QuoteID, &QuoteContent)
 					quotes[QuoteID] = QuoteContent
-					BotSendMsg(irc.conn, irc.ChannelName, QuoteContent)
+					BotSendMsg(irc.conn, irc.ChannelName, QuoteContent, irc.BotName)
 				}
 			}
 
-			// Check if user typed in !addgofo in the chat
+			// Check if user typed in !addgoof in the chat
 			CheckForGoof := strings.Contains(usermessage, "!addgoof")
 			if CheckForGoof == true {
 				// SQL statement: create goofs table if it does not exist into db
@@ -399,11 +429,11 @@ func main() {
 			if CheckForAddQuote == true {
 				// Check if user is moderator or broadcaster
 				if CheckUserStatus(line, "moderator", irc) == "true" {
-					AddQuote(irc.conn, irc.ChannelName, line, usermessage)
+					AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
 				} else if CheckUserStatus(line, "broadcaster", irc) == "true" {
-					AddQuote(irc.conn, irc.ChannelName, line, usermessage)
+					AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
 				} else {
-					BotSendMsg(irc.conn, irc.ChannelName, "Must be a moderator to add a new quote.")
+					BotSendMsg(irc.conn, irc.ChannelName, "Must be a moderator to add a new quote.", irc.BotName)
 				}
 
 			}
@@ -411,8 +441,12 @@ func main() {
 			// Respond to user the current time, currently locked to the computer the bot is running on
 			if usermessage == "!time" {
 				if irc.StreamerTimeToggle == true {
-					TimeCommands("StreamerTime", irc.conn, irc.ChannelName)
+					TimeCommands("StreamerTime", irc.conn, irc.ChannelName, irc.BotName, username[2])
 				}
+			}
+
+			if usermessage == "!uptime" {
+				TimeCommands("Uptime", irc.conn, irc.ChannelName, irc.BotName, username[2])
 			}
 
 		} else if strings.Contains(line, "USERNOTICE") {
@@ -425,7 +459,7 @@ func main() {
 				// Thank the user for subbing
 				botsubresponse := "@" + username2[0] + " " + irc.SubResponse
 				fmt.Println(botsubresponse)
-				BotSendMsg(irc.conn, irc.ChannelName, botsubresponse)
+				BotSendMsg(irc.conn, irc.ChannelName, botsubresponse, irc.BotName)
 				// Append new sub to a list of new subs in current session for logging
 				SubsCurrentStream = append(SubsCurrentStream, username2[0])
 			}
