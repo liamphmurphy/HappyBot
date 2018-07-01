@@ -1,8 +1,8 @@
-ChannelName = "#lphm"
+ChannelName = "#"
 ServerName = "irc.chat.twitch.tv:6667"
 # Oauth from Twitch here
-BotOAuth = "oauth:g438gb4qn6fnhhevoofl3qzrtoxwh7"
-BotName = "#"
+BotOAuth = ""
+BotName = ""
 ##### CHAT PROPERTIES #####
 LetModeratorsUseAllCommands = true # This allows a moderator to use any command, including broadcaster specific commands.
 
@@ -16,4 +16,8 @@ MakeLog = false  # Disabled by default, logs can take up space fast depending on
 SubResponse = "thanks for subscribing!"
 
 PurgeForLinks = true
-LinkChecks = [".com", ".net", ".org"]
+LinkChecks = [".com", ".net", ".org", ".tv"]
+
+HydrateOn = true
+HydrateTime = 30 # In minutes, how often you want to be reminded to hydrate!
+HydrateMessage = "It's hydrating time!"

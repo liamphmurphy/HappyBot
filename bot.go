@@ -29,6 +29,9 @@ type BotInfo struct {
 	SubResponse                 string
 	PurgeForLinks               bool
 	LinkChecks                  []string
+	HydrateOn                   bool
+	HydrateTime                 time.Duration
+	HydrateMessage              string
 }
 
 type CustomCommand struct {
@@ -74,6 +77,9 @@ func CreateBot() *BotInfo {
 		PurgeForLinks:               genconfig.PurgeForLinks,
 		LinkChecks:                  genconfig.LinkChecks,
 		CheckLongMessageCap:         genconfig.CheckLongMessageCap,
+		HydrateOn:                   genconfig.HydrateOn,
+		HydrateTime:                 genconfig.HydrateTime,
+		HydrateMessage:              genconfig.HydrateMessage,
 	}
 }
 
@@ -166,6 +172,7 @@ func TimeCommands(TimeSetting string, conn net.Conn, channel string, name string
 				timeSince := time.Since(val.StartedAt)
 				sinceSplit := strings.Split(timeSince.String(), ".")
 				newMessage := "@" + username + " " + sinceSplit[0]
+				fmt.Println(sinceSplit[1])
 				BotSendMsg(conn, channel, newMessage, name)
 			}
 		} else {
@@ -285,6 +292,15 @@ func main() {
 	currenttime := time.Now()
 	datestring := currenttime.String()
 	datesplit := strings.Split(datestring, " ")
+
+	// If user wants it, have the bot remind them to hydrate.
+	if irc.HydrateOn == true {
+		hydrateTo := SplitChannelName(irc.ChannelName)
+		for range time.NewTicker(irc.HydrateTime * time.Second * 60).C {
+			BotSendMsg(irc.conn, irc.ChannelName, "@"+hydrateTo+" "+irc.HydrateMessage, irc.BotName)
+		}
+	}
+
 	for {
 
 		line, err := proto.ReadLine()
