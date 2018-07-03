@@ -58,28 +58,28 @@ type Goof struct {
 }
 
 func CreateBot() *BotInfo {
-	var genconfig BotInfo
-	_, conferr := toml.DecodeFile("config/config.toml", &genconfig)
-	if conferr != nil {
-		fmt.Println("Can't read toml file due to: ", conferr)
+	var genConfig BotInfo
+	_, confErr := toml.DecodeFile("config/config.toml", &genConfig)
+	if confErr != nil {
+		fmt.Println("Can't read toml file due to: ", confErr)
 	}
 
 	return &BotInfo{
-		ChannelName:                 genconfig.ChannelName,
-		ServerName:                  genconfig.ServerName,
-		BotOAuth:                    genconfig.BotOAuth,
-		BotName:                     genconfig.BotName,
-		LetModeratorsUseAllCommands: genconfig.LetModeratorsUseAllCommands,
-		LongMessageCap:              genconfig.LongMessageCap,
-		StreamerTimeToggle:          genconfig.StreamerTimeToggle,
-		MakeLog:                     genconfig.MakeLog,
-		SubResponse:                 genconfig.SubResponse,
-		PurgeForLinks:               genconfig.PurgeForLinks,
-		LinkChecks:                  genconfig.LinkChecks,
-		CheckLongMessageCap:         genconfig.CheckLongMessageCap,
-		HydrateOn:                   genconfig.HydrateOn,
-		HydrateTime:                 genconfig.HydrateTime,
-		HydrateMessage:              genconfig.HydrateMessage,
+		ChannelName:                 genConfig.ChannelName,
+		ServerName:                  genConfig.ServerName,
+		BotOAuth:                    genConfig.BotOAuth,
+		BotName:                     genConfig.BotName,
+		LetModeratorsUseAllCommands: genConfig.LetModeratorsUseAllCommands,
+		LongMessageCap:              genConfig.LongMessageCap,
+		StreamerTimeToggle:          genConfig.StreamerTimeToggle,
+		MakeLog:                     genConfig.MakeLog,
+		SubResponse:                 genConfig.SubResponse,
+		PurgeForLinks:               genConfig.PurgeForLinks,
+		LinkChecks:                  genConfig.LinkChecks,
+		CheckLongMessageCap:         genConfig.CheckLongMessageCap,
+		HydrateOn:                   genConfig.HydrateOn,
+		HydrateTime:                 genConfig.HydrateTime,
+		HydrateMessage:              genConfig.HydrateMessage,
 	}
 }
 
@@ -152,20 +152,19 @@ func InitializeDB() *sql.DB {
 
 // Series of commands to do with time, like uptime.
 func TimeCommands(TimeSetting string, conn net.Conn, channel string, name string, username string) string {
-	currenttime := time.Now()
-	datestring := currenttime.String()
+	currentTime := time.Now()
+	dateString := currentTime.String()
 	//datesplit := strings.Split(datestring, " ")
 
 	// Uses system time instead of twitch api data.
 	if TimeSetting == "StreamerTime" {
-		NewTime := currenttime.Format("3:04 PM MST") // Does not actually = 3:04 PM, golang pattern matching used here
-		StreamerNameSplit := strings.Split(channel, "#")
-		StreamerString := StreamerNameSplit[1] + "'s" + " time: " + NewTime
-		BotSendMsg(conn, channel, StreamerString, name)
+		newTime := currentTime.Format("3:04 PM MST") // Does not actually = 3:04 PM, golang pattern matching used here
+		streamerNameSplit := strings.Split(channel, "#")
+		streamerString := streamerNameSplit[1] + "'s" + " time: " + newTime
+		BotSendMsg(conn, channel, streamerString, name)
 	}
 
 	if TimeSetting == "Uptime" {
-		//UseAPI()
 		s := GetAllData(conn, channel, name)
 		if len(s.Data) > 0 {
 			for _, val := range s.Data {
@@ -179,7 +178,7 @@ func TimeCommands(TimeSetting string, conn net.Conn, channel string, name string
 			BotSendMsg(conn, channel, "Stream is not live.", name)
 		}
 	}
-	return datestring
+	return dateString
 }
 
 func SplitChannelName(channel string) string {
@@ -190,40 +189,40 @@ func SplitChannelName(channel string) string {
 func AddQuote(conn net.Conn, channel string, message string, usermessage string, name string) {
 	database := InitializeDB()
 
-	QuoteSplit := strings.Split(usermessage, "!addquote ")
-	currenttime := time.Now()
-	NewTime := currenttime.Format("2006-01-02")
-	NewQuote := QuoteSplit[1] + " - " + NewTime
+	quoteSplit := strings.Split(usermessage, "!addquote ")
+	currentTime := time.Now()
+	newTime := currentTime.Format("2006-01-02")
+	newQuote := quoteSplit[1] + " - " + newTime
 	statement, err := database.Prepare("INSERT INTO quotes (QuoteContent) VALUES (?)")
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}
-	statement.Exec(NewQuote)
+	statement.Exec(newQuote)
 	BotSendMsg(conn, channel, "Quote added!", name)
 }
 
 // CheckUserStatus checks if user is allowed to run a command
 func CheckUserStatus(chatmessage string, permcheck string, irc *BotInfo) string {
 
-	userbadges1 := strings.Split(chatmessage, "@badges=")
-	userbadges2 := strings.Split(userbadges1[1], ";")
-	strings.Contains(userbadges2[0], permcheck)
-	if strings.Contains(userbadges2[0], permcheck) {
+	firstBadgeSplit := strings.Split(chatmessage, "@badges=")
+	endBadgeSplit := strings.Split(firstBadgeSplit[1], ";")
+	strings.Contains(endBadgeSplit[0], permcheck)
+	if strings.Contains(endBadgeSplit[0], permcheck) {
 		boolcheck := "true"
 		return boolcheck
 	}
-	if strings.Contains(userbadges2[0], "all") {
+	if strings.Contains(endBadgeSplit[0], "all") {
 		boolcheck := "true"
 		return boolcheck
 	}
 	if irc.LetModeratorsUseAllCommands == true {
-		if strings.Contains(userbadges2[0], "moderator") {
+		if strings.Contains(endBadgeSplit[0], "moderator") {
 			boolcheck := "true"
 			return boolcheck
 		}
 	}
 
-	if strings.Contains(userbadges2[0], "broadcaster") {
+	if strings.Contains(endBadgeSplit[0], "broadcaster") {
 		boolcheck := "true"
 		return boolcheck
 	} else {
@@ -231,6 +230,15 @@ func CheckUserStatus(chatmessage string, permcheck string, irc *BotInfo) string 
 		return boolcheck
 	}
 	return ""
+}
+
+func HydrateReminder(irc *BotInfo, conn net.Conn, channel string) {
+	if irc.HydrateOn == true {
+		hydrateTo := SplitChannelName(channel)
+		for range time.NewTicker(irc.HydrateTime * time.Second * 60).C {
+			BotSendMsg(conn, channel, "@"+hydrateTo+" "+irc.HydrateMessage, irc.BotName)
+		}
+	}
 }
 
 // Function used throughout the program for the bot to send IRC messages
@@ -253,7 +261,6 @@ func (bot *BotInfo) Connect() {
 }
 
 func main() {
-
 	database, err := sql.Open("sqlite3", "./happybot.db")
 	if err != nil {
 		fmt.Printf("Error: %s", err)
@@ -294,15 +301,9 @@ func main() {
 	datesplit := strings.Split(datestring, " ")
 
 	// If user wants it, have the bot remind them to hydrate.
-	if irc.HydrateOn == true {
-		hydrateTo := SplitChannelName(irc.ChannelName)
-		for range time.NewTicker(irc.HydrateTime * time.Second * 60).C {
-			BotSendMsg(irc.conn, irc.ChannelName, "@"+hydrateTo+" "+irc.HydrateMessage, irc.BotName)
-		}
-	}
+	//go HydrateReminder(irc, irc.conn, irc.ChannelName)
 
 	for {
-
 		line, err := proto.ReadLine()
 		if err != nil {
 			break
@@ -347,14 +348,14 @@ func main() {
 
 			// For each value in LinkChecks array in config.toml, check whether to purge user or not.
 			for _, v := range irc.LinkChecks {
-				userbadges1 := strings.Split(line, "@badges=")
-				userbadges2 := strings.Split(userbadges1[1], ";")
+				firstBadgeSplit := strings.Split(line, "@badges=")
+				endBadgeSplit := strings.Split(firstBadgeSplit[1], ";")
 				if strings.Contains(usermessage, v) {
 					if irc.PurgeForLinks == true {
 						// Check for different types of user badges (should find a better way to check this)
 						if CheckUserStatus(line, "subscriber", irc) == "true" {
 							fmt.Println("Link permitted: Sub.")
-							fmt.Println("userbadge is: " + userbadges2[0])
+							fmt.Println("userbadge is: " + endBadgeSplit[0])
 						}
 						if CheckUserStatus(line, "moderator", irc) == "true" {
 							fmt.Println("Link permitted: Moderator.")
@@ -369,6 +370,22 @@ func main() {
 						}
 					}
 				}
+			}
+
+			if strings.Contains(usermessage, "!editcom") {
+				// Create a slice of the elements in a users message
+				comSplit := strings.Split(usermessage, " ")
+
+				// Get the key and new value for sake of database
+				comKey := comSplit[1]
+				comNewResp := strings.Join(comSplit[2:], " ")
+
+				database := InitializeDB()
+				rows, err := database.Prepare("UPDATE commands SET CommandResponse = ? WHERE CommandName = ?")
+				if err != nil {
+					fmt.Println(err)
+				}
+				rows.Exec(comNewResp, comKey)
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
@@ -415,8 +432,8 @@ func main() {
 			}
 
 			// Check if user typed in !addgoof in the chat
-			CheckForGoof := strings.Contains(usermessage, "!addgoof")
-			if CheckForGoof == true {
+			checkForGoof := strings.Contains(usermessage, "!addgoof")
+			if checkForGoof == true {
 				// SQL statement: create goofs table if it does not exist into db
 				statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS goofs (GoofID INTEGER PRIMARY KEY, GoofName text)")
 				if err != nil {
@@ -478,6 +495,11 @@ func main() {
 				BotSendMsg(irc.conn, irc.ChannelName, botsubresponse, irc.BotName)
 				// Append new sub to a list of new subs in current session for logging
 				SubsCurrentStream = append(SubsCurrentStream, username2[0])
+				if irc.MakeLog == true {
+					logLocation := "logs/NewSubs " + datesplit[0] + ".txt"
+					logMessage := username2[0] + "\n"
+					WriteToLog(logLocation, logMessage)
+				}
 			}
 		}
 
