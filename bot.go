@@ -165,7 +165,7 @@ func TimeCommands(TimeSetting string, conn net.Conn, channel string, name string
 	}
 
 	if TimeSetting == "Uptime" {
-		s := GetAllData(conn, channel, name)
+		s := StreamData(conn, channel)
 		if len(s.Data) > 0 {
 			for _, val := range s.Data {
 				timeSince := time.Since(val.StartedAt)
@@ -301,9 +301,11 @@ func main() {
 	datesplit := strings.Split(datestring, " ")
 
 	// If user wants it, have the bot remind them to hydrate.
-	//go HydrateReminder(irc, irc.conn, irc.ChannelName)
+	go HydrateReminder(irc, irc.conn, irc.ChannelName)
+	//go Layout()
 
 	for {
+		go ConsoleInput(irc.conn, irc.ChannelName, irc.BotName)
 		line, err := proto.ReadLine()
 		if err != nil {
 			break
@@ -311,7 +313,6 @@ func main() {
 
 		/* Run ConsoleInput on new thread
 		Allows user to type commands into terminal window */
-		go ConsoleInput(irc.conn, irc.ChannelName, irc.BotName)
 
 		// When Twitch servers send a ping, respond with pong to avoid disconnections.
 		if strings.Contains(line, "PING") {
@@ -373,19 +374,7 @@ func main() {
 			}
 
 			if strings.Contains(usermessage, "!editcom") {
-				// Create a slice of the elements in a users message
-				comSplit := strings.Split(usermessage, " ")
-
-				// Get the key and new value for sake of database
-				comKey := comSplit[1]
-				comNewResp := strings.Join(comSplit[2:], " ")
-
-				database := InitializeDB()
-				rows, err := database.Prepare("UPDATE commands SET CommandResponse = ? WHERE CommandName = ?")
-				if err != nil {
-					fmt.Println(err)
-				}
-				rows.Exec(comNewResp, comKey)
+				EditCommand(usermessage)
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
@@ -429,6 +418,11 @@ func main() {
 					quotes[QuoteID] = QuoteContent
 					BotSendMsg(irc.conn, irc.ChannelName, QuoteContent, irc.BotName)
 				}
+			}
+
+			if usermessage == "!viewers" {
+				users := GetViewers(irc.conn, irc.ChannelName)
+				fmt.Println(users.Chatters.CurrentModerators[2])
 			}
 
 			// Check if user typed in !addgoof in the chat
