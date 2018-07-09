@@ -29,12 +29,10 @@ type Viewers struct {
 	} `json:"chatters"`
 }
 
-func StreamData(conn net.Conn, channel string) Stream {
-	// Create a http client
+func ApiCall(conn net.Conn, channel string, httpType string, apiUrl string) []byte {
 	client := &http.Client{}
 	// Split the # from channel name to be used for URL in GET
-	newChannel := SplitChannelName(channel)
-	req, _ := http.NewRequest("GET", "https://api.twitch.tv/helix/streams?user_login="+newChannel, nil)
+	req, _ := http.NewRequest(httpType, apiUrl, nil)
 	req.Header.Set("Client-ID", "orsdrjf636aronx93hacdpk32xoi9k")
 	resp, err := client.Do(req)
 	if err != nil {
@@ -44,28 +42,22 @@ func StreamData(conn net.Conn, channel string) Stream {
 	if err != nil {
 		panic(err.Error())
 	}
+	return body
+}
+
+func StreamData(conn net.Conn, channel string) Stream {
+	// Create a http client
+	newChannel := SplitChannelName(channel)
+	body := ApiCall(conn, channel, "GET", "https://api.twitch.tv/helix/streams?user_login="+newChannel)
 	// Create a new object of Stream and unmarshal JSON into it
 	s := Stream{}
 	json.Unmarshal(body, &s)
-
 	return s
 
 }
 
 func GetViewers(conn net.Conn, channel string) Viewers {
-	client := &http.Client{}
-	// Split the # from channel name to be used for URL in GET
-	//newChannel := SplitChannelName(channel)
-	req, _ := http.NewRequest("GET", "https://tmi.twitch.tv/group/user/caliverse/chatters", nil)
-	//req.Header.Set("Client-ID", "orsdrjf636aronx93hacdpk32xoi9k")
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err.Error())
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err.Error())
-	}
+	body := ApiCall(conn, channel, "GET", "https://tmi.twitch.tv/group/user/caliverse/chatters")
 	// Create a new object of Stream and unmarshal JSON into it
 	s := Viewers{}
 	json.Unmarshal(body, &s)
