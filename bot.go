@@ -243,8 +243,8 @@ func HydrateReminder(irc *BotInfo, conn net.Conn, channel string) {
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string, name string) {
-	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
-	fmt.Println(name + ": " + message) // Dispaly bot's message in terminal
+	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	//fmt.Println(name + ": " + message) // Dispaly bot's message in terminal
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -396,34 +396,30 @@ func main() {
 				if usermessage == k {
 					if CheckUserStatus(line, v.CommandPermission, irc) == "true" {
 						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse, irc.BotName)
+
 					}
 				}
-			}
 
-			for k, v := range quotes {
-				if usermessage == "!quote "+k {
-					BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
+				for k, v := range quotes {
+					if usermessage == "!quote "+k {
+						BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
+					}
+
+				}
+				if usermessage == "!quote" {
+					rows, err := database.Query("SELECT QuoteID, QuoteContent from quotes ORDER BY RANDOM() LIMIT 1;")
+					if err != nil {
+						fmt.Printf("Error: %s", err)
+					}
+					for rows.Next() {
+						var QuoteID string
+						var QuoteContent string
+						rows.Scan(&QuoteID, &QuoteContent)
+						quotes[QuoteID] = QuoteContent
+						BotSendMsg(irc.conn, irc.ChannelName, QuoteContent, irc.BotName)
+					}
 				}
 
-			}
-			if usermessage == "!quote" {
-				rows, err := database.Query("SELECT QuoteID, QuoteContent from quotes ORDER BY RANDOM() LIMIT 1;")
-				if err != nil {
-					fmt.Printf("Error: %s", err)
-				}
-				for rows.Next() {
-					var QuoteID string
-					var QuoteContent string
-					rows.Scan(&QuoteID, &QuoteContent)
-					quotes[QuoteID] = QuoteContent
-					BotSendMsg(irc.conn, irc.ChannelName, QuoteContent, irc.BotName)
-				}
-			}
-
-			if usermessage == "!viewers" {
-				users := GetViewers(irc.conn, irc.ChannelName)
-				fmt.Println(users.Chatters.CurrentModerators[2])
-			}
 
 			// Check if user typed in !addgoof in the chat
 			checkForGoof := strings.Contains(usermessage, "!addgoof")

@@ -57,7 +57,8 @@ func StreamData(conn net.Conn, channel string) Stream {
 }
 
 func GetViewers(conn net.Conn, channel string) Viewers {
-	body := ApiCall(conn, channel, "GET", "https://tmi.twitch.tv/group/user/caliverse/chatters")
+	newChannel := SplitChannelName(channel)
+	body := ApiCall(conn, channel, "GET", "https://tmi.twitch.tv/group/user/"+newChannel+"/chatters")
 	// Create a new object of Stream and unmarshal JSON into it
 	s := Viewers{}
 	json.Unmarshal(body, &s)
