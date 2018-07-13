@@ -166,14 +166,22 @@ func TimeCommands(TimeSetting string, conn net.Conn, channel string, name string
 
 	if TimeSetting == "Uptime" {
 		s := StreamData(conn, channel)
+		// If variable 's' has data returned, stream is live and will continue.
 		if len(s.Data) > 0 {
 			for _, val := range s.Data {
+				// Grabs the StartedAt value from JSON, showing timestamp when stream went live.
 				timeSince := time.Since(val.StartedAt)
+
+				// Use timeSince to calculate the difference between timestamp and current time.
 				sinceSplit := strings.Split(timeSince.String(), ".")
-				newMessage := "@" + username + " " + sinceSplit[0]
-				fmt.Println(sinceSplit[1])
+				// Begin replacing single characters for time units to full words and make it nicer looking.
+				newSplit := strings.Replace(sinceSplit[0], "h", " hours, ", -1)
+				newSplit = strings.Replace(newSplit, "m", " minutes, ", -1)
+				newMessage := "@" + username + " " + newSplit + " seconds."
+
 				BotSendMsg(conn, channel, newMessage, name)
 			}
+			// if no data in 's', stream is not live.
 		} else {
 			BotSendMsg(conn, channel, "Stream is not live.", name)
 		}
@@ -243,8 +251,8 @@ func HydrateReminder(irc *BotInfo, conn net.Conn, channel string) {
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string, name string) {
-	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
-	//fmt.Println(name + ": " + message) // Dispaly bot's message in terminal
+	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	fmt.Println(name + ": " + message) // Display bot's message in terminal
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -302,6 +310,7 @@ func main() {
 
 	// If user wants it, have the bot remind them to hydrate.
 	go HydrateReminder(irc, irc.conn, irc.ChannelName)
+	//go RunPoints(irc.conn, irc.ChannelName)
 	//go Layout()
 
 	for {
@@ -396,30 +405,29 @@ func main() {
 				if usermessage == k {
 					if CheckUserStatus(line, v.CommandPermission, irc) == "true" {
 						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse, irc.BotName)
-
 					}
 				}
+			}
 
-				for k, v := range quotes {
-					if usermessage == "!quote "+k {
-						BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
-					}
-
-				}
-				if usermessage == "!quote" {
-					rows, err := database.Query("SELECT QuoteID, QuoteContent from quotes ORDER BY RANDOM() LIMIT 1;")
-					if err != nil {
-						fmt.Printf("Error: %s", err)
-					}
-					for rows.Next() {
-						var QuoteID string
-						var QuoteContent string
-						rows.Scan(&QuoteID, &QuoteContent)
-						quotes[QuoteID] = QuoteContent
-						BotSendMsg(irc.conn, irc.ChannelName, QuoteContent, irc.BotName)
-					}
+			for k, v := range quotes {
+				if usermessage == "!quote "+k {
+					BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
 				}
 
+			}
+			if usermessage == "!quote" {
+				rows, err := database.Query("SELECT QuoteID, QuoteContent from quotes ORDER BY RANDOM() LIMIT 1;")
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+				}
+				for rows.Next() {
+					var QuoteID string
+					var QuoteContent string
+					rows.Scan(&QuoteID, &QuoteContent)
+					quotes[QuoteID] = QuoteContent
+					BotSendMsg(irc.conn, irc.ChannelName, QuoteContent, irc.BotName)
+				}
+			}
 
 			// Check if user typed in !addgoof in the chat
 			checkForGoof := strings.Contains(usermessage, "!addgoof")
