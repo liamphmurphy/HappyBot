@@ -251,8 +251,8 @@ func HydrateReminder(irc *BotInfo, conn net.Conn, channel string) {
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string, name string) {
-	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
-	//fmt.Println(name + ": " + message) // Display bot's message in terminal
+	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	fmt.Println(name + ": " + message) // Display bot's message in terminal
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -283,8 +283,10 @@ func main() {
 	irc := CreateBot()
 	irc.Connect()
 
+	var com map[string]*CustomCommand
+
 	badwords := LoadBadWords()
-	com := LoadCommands()
+	com = LoadCommands()
 	goofs := LoadGoofs()
 	quotes := LoadQuotes()
 
@@ -381,8 +383,8 @@ func main() {
 				}
 			}
 
-			if strings.Contains(usermessage, "!editcom") {
-				EditCommand(usermessage)
+			if strings.Contains(usermessage, "!editcom") || (strings.Contains(usermessage, "!addcom")) {
+				com = CommandOperations(usermessage)
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
