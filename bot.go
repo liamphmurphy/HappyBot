@@ -383,8 +383,12 @@ func main() {
 				}
 			}
 
-			if strings.Contains(usermessage, "!editcom") || (strings.Contains(usermessage, "!addcom")) {
-				com = CommandOperations(usermessage)
+			if strings.Contains(usermessage, "!editcom") || strings.Contains(usermessage, "!addcom") {
+				if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
+					com = CommandOperations(usermessage)
+				} else {
+					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" You cannot add a command.", irc.BotName)
+				}
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
