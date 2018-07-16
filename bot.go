@@ -32,6 +32,7 @@ type BotInfo struct {
 	HydrateOn                   bool
 	HydrateTime                 time.Duration
 	HydrateMessage              string
+	PastebinKey                 string
 }
 
 type CustomCommand struct {
@@ -80,6 +81,7 @@ func CreateBot() *BotInfo {
 		HydrateOn:                   genConfig.HydrateOn,
 		HydrateTime:                 genConfig.HydrateTime,
 		HydrateMessage:              genConfig.HydrateMessage,
+		PastebinKey:                 genConfig.PastebinKey,
 	}
 }
 
@@ -194,7 +196,7 @@ func SplitChannelName(channel string) string {
 	return newChannel[1]
 }
 
-func AddQuote(conn net.Conn, channel string, message string, usermessage string, name string) {
+func AddQuote(conn net.Conn, channel string, message string, usermessage string, name string) map[string]string {
 	database := InitializeDB()
 
 	quoteSplit := strings.Split(usermessage, "!addquote ")
@@ -207,6 +209,23 @@ func AddQuote(conn net.Conn, channel string, message string, usermessage string,
 	}
 	statement.Exec(newQuote)
 	BotSendMsg(conn, channel, "Quote added!", name)
+
+	return LoadQuotes()
+}
+
+func AddGoof(usermessage string) Goof {
+	database := InitializeDB()
+	// Split data to separate username from value to use as new goof
+	GoofSplit := strings.Split(usermessage, " ")
+	GoofString := string(GoofSplit[1])
+	fmt.Println(GoofSplit[1])
+
+	statement, err := database.Prepare("INSERT INTO goofs (GoofName) VALUES (?)")
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+	statement.Exec(GoofString) // Inserts value of GoofString into the (?) in previous SQL statement
+	return LoadGoofs()
 }
 
 // CheckUserStatus checks if user is allowed to run a command
@@ -269,26 +288,19 @@ func (bot *BotInfo) Connect() {
 }
 
 func main() {
-	database, err := sql.Open("sqlite3", "./happybot.db")
-	if err != nil {
-		fmt.Printf("Error: %s", err)
-	}
-
-	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS commands (CommandID INTEGER PRIMARY KEY, CommandName TEXT, CommandResponse TEXT)")
-	if err != nil {
-		fmt.Printf("Error: %s", err)
-	}
-	statement.Exec()
-
+	var database *sql.DB
+	database = InitializeDB()
 	irc := CreateBot()
 	irc.Connect()
 
+	// Declare commands, quotes etc maps here so that it can be changed dynamically later on.
 	var com map[string]*CustomCommand
+	var quotes map[string]string
 
 	badwords := LoadBadWords()
 	com = LoadCommands()
 	goofs := LoadGoofs()
-	quotes := LoadQuotes()
+	quotes = LoadQuotes()
 
 	// Pass info to HTTP request
 	fmt.Fprintf(irc.conn, "PASS %s\r\n", irc.BotOAuth)
@@ -383,12 +395,17 @@ func main() {
 				}
 			}
 
-			if strings.Contains(usermessage, "!editcom") || strings.Contains(usermessage, "!addcom") {
+			if strings.Contains(usermessage, "!editcom") || strings.Contains(usermessage, "!addcom") || strings.Contains(usermessage, "!setperm") {
 				if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 					com = CommandOperations(usermessage)
 				} else {
-					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" You cannot add a command.", irc.BotName)
+					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" Insufficient permissions to change commands.", irc.BotName)
 				}
+			}
+
+			if usermessage == "!listcoms" {
+				paste := PostPasteBin(irc.PastebinKey)
+				fmt.Println(paste)
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
@@ -410,6 +427,10 @@ func main() {
 				if usermessage == k {
 					if CheckUserStatus(line, v.CommandPermission, irc) == "true" {
 						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse, irc.BotName)
+					} else if v.CommandPermission == "all" {
+						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse, irc.BotName)
+					} else {
+						BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" Insufficient perms to run that command.", irc.BotName)
 					}
 				}
 			}
@@ -437,19 +458,12 @@ func main() {
 			// Check if user typed in !addgoof in the chat
 			checkForGoof := strings.Contains(usermessage, "!addgoof")
 			if checkForGoof == true {
-				// SQL statement: create goofs table if it does not exist into db
-				statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS goofs (GoofID INTEGER PRIMARY KEY, GoofName text)")
-				if err != nil {
-					fmt.Printf("Error: %s", err)
-				}
-				statement.Exec() // Needed to execute previous declaration of statement
-
 				// Split data to separate username from value to use as new goof
 				GoofSplit := strings.Split(usermessage, " ")
 				GoofString := string(GoofSplit[1])
 				fmt.Println(GoofSplit[1])
 
-				statement, err = database.Prepare("INSERT INTO goofs (GoofName) VALUES (?)")
+				statement, err := database.Prepare("INSERT INTO goofs (GoofName) VALUES (?)")
 				if err != nil {
 					fmt.Printf("Error: %s", err)
 				}
