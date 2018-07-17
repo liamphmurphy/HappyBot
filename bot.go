@@ -191,11 +191,13 @@ func TimeCommands(TimeSetting string, conn net.Conn, channel string, name string
 	return dateString
 }
 
+// Function to remove '#' from channel name, typically for URL purposes in API's.
 func SplitChannelName(channel string) string {
 	newChannel := strings.Split(channel, "#")
 	return newChannel[1]
 }
 
+// Function to add a new quote and return a map of quotes, including new one.
 func AddQuote(conn net.Conn, channel string, message string, usermessage string, name string) map[string]string {
 	database := InitializeDB()
 
@@ -213,6 +215,7 @@ func AddQuote(conn net.Conn, channel string, message string, usermessage string,
 	return LoadQuotes()
 }
 
+// Function to add a new goof and return a slice of goofs, including new one.
 func AddGoof(usermessage string) Goof {
 	database := InitializeDB()
 	// Split data to separate username from value to use as new goof
@@ -404,8 +407,9 @@ func main() {
 			}
 
 			if usermessage == "!listcoms" {
-				paste := PostPasteBin(irc.PastebinKey)
-				fmt.Println(paste)
+				paste := PostPasteBin(irc.PastebinKey, com)
+				BotSendMsg(irc.conn, irc.ChannelName, "Command list: "+paste, irc.BotName)
+
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc

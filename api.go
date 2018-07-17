@@ -74,7 +74,6 @@ func PostPasteBin(apikey string, com map[string]*CustomCommand) string {
 	//client := &http.Client{}
 
 	file, _ := os.OpenFile("comstext.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-
 	// For each key and value in com map, append it to file for string conversion later.
 	for k, v := range com {
 		fmt.Println(k, v)
@@ -92,7 +91,9 @@ func PostPasteBin(apikey string, com map[string]*CustomCommand) string {
 		"api_option":     {"paste"},
 		"api_paste_code": {str},
 	}
+	file.Close()
 	err = os.Remove("comstext.txt")
+
 	if err != nil {
 		panic(err)
 	}
