@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -67,13 +69,32 @@ func GetViewers(conn net.Conn, channel string) Viewers {
 
 }
 
-func PostPasteBin(apikey string) string {
+func PostPasteBin(apikey string, com map[string]*CustomCommand) string {
 	//com := LoadCommands()
 	//client := &http.Client{}
+
+	file, _ := os.OpenFile("comstext.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+	// For each key and value in com map, append it to file for string conversion later.
+	for k, v := range com {
+		fmt.Println(k, v)
+		file.WriteString(k + " --- " + v.CommandResponse + "\n")
+	}
+
+	s, err := ioutil.ReadFile("comstext.txt")
+	if err != nil {
+		panic(err)
+	}
+	str := string(s)
+
 	pasteBinData := url.Values{
 		"api_dev_key":    {apikey},
 		"api_option":     {"paste"},
-		"api_paste_code": {"test"},
+		"api_paste_code": {str},
+	}
+	err = os.Remove("comstext.txt")
+	if err != nil {
+		panic(err)
 	}
 	resp, err := http.PostForm("https://pastebin.com/api/api_post.php", pasteBinData)
 	if err != nil {
