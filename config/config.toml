@@ -13,6 +13,7 @@ StreamerTimeToggle = true # Toggle whether !time is enabled or not
 
 MakeLog = false  # Disabled by default, logs can take up space fast depending on chat activity
 
+RespondToSubs = true
 SubResponse = "thanks for subscribing!"
 
 PurgeForLinks = true

@@ -26,6 +26,7 @@ type BotInfo struct {
 	LongMessageCap              int
 	StreamerTimeToggle          bool
 	MakeLog                     bool
+	RespondToSubs               bool
 	SubResponse                 string
 	PurgeForLinks               bool
 	LinkChecks                  []string
@@ -74,6 +75,7 @@ func CreateBot() *BotInfo {
 		LongMessageCap:              genConfig.LongMessageCap,
 		StreamerTimeToggle:          genConfig.StreamerTimeToggle,
 		MakeLog:                     genConfig.MakeLog,
+		RespondToSubs:               genConfig.RespondToSubs,
 		SubResponse:                 genConfig.SubResponse,
 		PurgeForLinks:               genConfig.PurgeForLinks,
 		LinkChecks:                  genConfig.LinkChecks,
@@ -273,8 +275,8 @@ func HydrateReminder(irc *BotInfo, conn net.Conn, channel string) {
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string, name string) {
-	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
-	fmt.Println(name + ": " + message) // Display bot's message in terminal
+	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	//fmt.Println(name + ": " + message) // Display bot's message in terminal
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -351,7 +353,13 @@ func main() {
 			usermessage := strings.Replace(userdata[1], " :", "", 1)
 
 			// Display the whole cleaned up message
-			fmt.Printf(username[2] + ": " + usermessage + "\n")
+			if len(os.Args) > 1 {
+				if os.Args[1] == "--verbose" || os.Args[1] == "-v" {
+					fmt.Println(line)
+				}
+			} else {
+				fmt.Printf(username[2] + ": " + usermessage + "\n")
+			}
 
 			// Check if user set MakeLog in config.toml to true, if so, run
 			if irc.MakeLog == true {
@@ -410,6 +418,10 @@ func main() {
 				paste := PostPasteBin(irc.PastebinKey, com)
 				BotSendMsg(irc.conn, irc.ChannelName, "Command list: "+paste, irc.BotName)
 
+			}
+
+			if usermessage == "!update" {
+				PostStreamData(irc.conn, irc.ChannelName, "title", "Darkest Dungeon")
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
@@ -506,20 +518,22 @@ func main() {
 		} else if strings.Contains(line, "USERNOTICE") {
 			// user variables used to split the twitch tag string to get the username
 			if strings.Contains(line, "msg-param-sub-plan") {
-				var SubsCurrentStream []string
-				username1 := strings.Split(line, "display-name=")
-				username2 := strings.Split(username1[1], ";")
+				if irc.RespondToSubs == true {
+					var SubsCurrentStream []string
+					username1 := strings.Split(line, "display-name=")
+					username2 := strings.Split(username1[1], ";")
 
-				// Thank the user for subbing
-				botsubresponse := "@" + username2[0] + " " + irc.SubResponse
-				fmt.Println(botsubresponse)
-				BotSendMsg(irc.conn, irc.ChannelName, botsubresponse, irc.BotName)
-				// Append new sub to a list of new subs in current session for logging
-				SubsCurrentStream = append(SubsCurrentStream, username2[0])
-				if irc.MakeLog == true {
-					logLocation := "logs/NewSubs " + datesplit[0] + ".txt"
-					logMessage := username2[0] + "\n"
-					WriteToLog(logLocation, logMessage)
+					// Thank the user for subbing
+					botsubresponse := "@" + username2[0] + " " + irc.SubResponse
+					fmt.Println(botsubresponse)
+					BotSendMsg(irc.conn, irc.ChannelName, botsubresponse, irc.BotName)
+					// Append new sub to a list of new subs in current session for logging
+					SubsCurrentStream = append(SubsCurrentStream, username2[0])
+					if irc.MakeLog == true {
+						logLocation := "logs/NewSubs " + datesplit[0] + ".txt"
+						logMessage := username2[0] + "\n"
+						WriteToLog(logLocation, logMessage)
+					}
 				}
 			}
 		}
