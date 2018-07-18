@@ -30,6 +30,7 @@ Primary reason was for practice and working on my programming abilities, but I d
 `go get github.com/mattn/go-sqlite3`
 
 Then, on Linux / Mac OS
+
 `go run *.go`
 
 On Windows (previous method with wildcard was buggy, but maybe it'll work for you
