@@ -29,9 +29,12 @@ Primary reason was for practice and working on my programming abilities, but I d
  
 `go get github.com/mattn/go-sqlite3`
 
-Then
+Then, on Linux / Mac OS
+`go run *.go`
 
-`go run bot.go consoleinput.go`
+On Windows (previous method with wildcard was buggy, but maybe it'll work for you
+
+`go run bot.go consoleinput.go commands.go api.go points.go timedcommands.go`
 
 <h1> Building it </h1>
 
