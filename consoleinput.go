@@ -32,6 +32,14 @@ func ConsoleInput(conn net.Conn, channel string, name string) {
 		}
 	}
 
+	if strings.Contains(text, "!editcom") || strings.Contains(text, "!addcom") || strings.Contains(text, "!setperm") {
+		CommandOperations(text)
+	}
+
+	if strings.Contains(text, "!edittimed") || strings.Contains(text, "!addtimed") {
+		TimedCommandOperations(text)
+	}
+
 	ChatMsgCheck := strings.Contains(text, "!msg")
 	if ChatMsgCheck == true {
 		MsgSplit := strings.Split(text, "!msg ")
@@ -42,14 +50,12 @@ func ConsoleInput(conn net.Conn, channel string, name string) {
 		}
 	}
 
-	ChatHelpCheck := strings.Contains(text, "!help")
-	if ChatHelpCheck == true {
+	if text == "!help" {
 		fmt.Println("Current console options: ")
 		fmt.Println("!msg - This command followed by an text afterward will be posted by the bot in chat.")
 		fmt.Println("!exit - This closes the bot safely. You may also use the 'CTRL+' shortcut.")
 		fmt.Println("!ban - This command followed by a username will ban the user from your channel.")
 		fmt.Println("!unban - This command followed by a username will unban the user from your channel.")
-
 	}
 
 	ChatBanCheck := strings.Contains(text, "!ban")
@@ -115,13 +121,13 @@ func ConsoleInput(conn net.Conn, channel string, name string) {
 
 	ChatAddComCheck := strings.Contains(text, "!addcom")
 	if ChatAddComCheck == true {
-		CommandSplit := strings.Split(text, "-")
+		CommandSplit := strings.Split(text, " ")
 
 		if len(CommandSplit) <= 1 { // If len to handle index out of range error
 			fmt.Println("Please type a proper command.")
 		} else {
 			fmt.Println(CommandSplit[1])
-			fmt.Println(CommandSplit[2])
+			fmt.Println(CommandSplit[2:])
 		}
 	}
 
