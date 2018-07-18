@@ -265,11 +265,9 @@ func CheckUserStatus(chatmessage string, permcheck string, irc *BotInfo) string 
 }
 
 func HydrateReminder(irc *BotInfo, conn net.Conn, channel string) {
-	if irc.HydrateOn == true {
-		hydrateTo := SplitChannelName(channel)
-		for range time.NewTicker(irc.HydrateTime * time.Second * 60).C {
-			BotSendMsg(conn, channel, "@"+hydrateTo+" "+irc.HydrateMessage, irc.BotName)
-		}
+	hydrateTo := SplitChannelName(channel)
+	for range time.NewTicker(irc.HydrateTime * time.Second * 60).C {
+		BotSendMsg(conn, channel, "@"+hydrateTo+" "+irc.HydrateMessage, irc.BotName)
 	}
 }
 
@@ -328,9 +326,11 @@ func main() {
 	datesplit := strings.Split(datestring, " ")
 
 	// If user wants it, have the bot remind them to hydrate.
-	go HydrateReminder(irc, irc.conn, irc.ChannelName)
+	if irc.HydrateOn == true {
+		go HydrateReminder(irc, irc.conn, irc.ChannelName)
+	}
 	//go RunPoints(irc.conn, irc.ChannelName)
-	go TimedCommands(irc.conn, irc.ChannelName, irc.BotName)
+	TimedCommands(irc.conn, irc.ChannelName, irc.BotName)
 
 	for {
 		go ConsoleInput(irc.conn, irc.ChannelName, irc.BotName)
@@ -415,131 +415,130 @@ func main() {
 				if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 					TimedCommandOperations(usermessage)
 				}
+			}
 
-				if usermessage == "!listcoms" {
-					paste := PostPasteBin(irc.PastebinKey, com)
-					BotSendMsg(irc.conn, irc.ChannelName, "Command list: "+paste, irc.BotName)
+			if usermessage == "!listcoms" {
+				paste := PostPasteBin(irc.PastebinKey, com)
+				BotSendMsg(irc.conn, irc.ChannelName, "Command list: "+paste, irc.BotName)
 
+			}
+
+			if usermessage == "!update" {
+				PostStreamData(irc.conn, irc.ChannelName, "title", "Darkest Dungeon")
+			}
+
+			// Check for occurences of values from arrays/slices/maps etc
+
+			for _, v := range goofs.GoofSlice {
+				if usermessage == v {
+					BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
 				}
+			}
 
-				if usermessage == "!update" {
-					PostStreamData(irc.conn, irc.ChannelName, "title", "Darkest Dungeon")
+			for _, v := range badwords.BadwordSlice {
+				if strings.Contains(usermessage, v) {
+					fmt.Println(username[2], "has been banned.")
+					BotSendMsg(irc.conn, irc.ChannelName, "/ban "+username[2], irc.BotName)
 				}
+			}
 
-				// Check for occurences of values from arrays/slices/maps etc
-
-				for _, v := range goofs.GoofSlice {
-					if usermessage == v {
-						BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
-					}
-				}
-
-				for _, v := range badwords.BadwordSlice {
-					if strings.Contains(usermessage, v) {
-						fmt.Println(username[2], "has been banned.")
-						BotSendMsg(irc.conn, irc.ChannelName, "/ban "+username[2], irc.BotName)
-					}
-				}
-
-				for k, v := range com {
-					if usermessage == k {
-						if CheckUserStatus(line, v.CommandPermission, irc) == "true" {
-							BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse, irc.BotName)
-						} else if v.CommandPermission == "all" {
-							BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse, irc.BotName)
-						} else {
-							BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" Insufficient perms to run that command.", irc.BotName)
-						}
-					}
-				}
-
-				for k, v := range quotes {
-					if usermessage == "!quote "+k {
-						BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
-					}
-
-				}
-				if usermessage == "!quote" {
-					rows, err := database.Query("SELECT QuoteID, QuoteContent from quotes ORDER BY RANDOM() LIMIT 1;")
-					if err != nil {
-						fmt.Printf("Error: %s", err)
-					}
-					for rows.Next() {
-						var QuoteID string
-						var QuoteContent string
-						rows.Scan(&QuoteID, &QuoteContent)
-						quotes[QuoteID] = QuoteContent
-						BotSendMsg(irc.conn, irc.ChannelName, QuoteContent, irc.BotName)
-					}
-				}
-
-				// Check if user typed in !addgoof in the chat
-				checkForGoof := strings.Contains(usermessage, "!addgoof")
-				if checkForGoof == true {
-					// Split data to separate username from value to use as new goof
-					GoofSplit := strings.Split(usermessage, " ")
-					GoofString := string(GoofSplit[1])
-					fmt.Println(GoofSplit[1])
-
-					statement, err := database.Prepare("INSERT INTO goofs (GoofName) VALUES (?)")
-					if err != nil {
-						fmt.Printf("Error: %s", err)
-					}
-					statement.Exec(GoofString) // Inserts value of GoofString into the (?) in previous SQL statement
-
-					// Append to the slice in this run session to make it useable right away
-					goofs.GoofSlice = append(goofs.GoofSlice, GoofString)
-
-				}
-
-				// Check if usermessage has !addquote in it
-				CheckForAddQuote := strings.Contains(usermessage, "!addquote")
-				if CheckForAddQuote == true {
-					// Check if user is moderator or broadcaster
-					if CheckUserStatus(line, "moderator", irc) == "true" {
-						AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
-					} else if CheckUserStatus(line, "broadcaster", irc) == "true" {
-						AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
+			for k, v := range com {
+				if usermessage == k {
+					if CheckUserStatus(line, v.CommandPermission, irc) == "true" {
+						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse, irc.BotName)
+					} else if v.CommandPermission == "all" {
+						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse, irc.BotName)
 					} else {
-						BotSendMsg(irc.conn, irc.ChannelName, "Must be a moderator to add a new quote.", irc.BotName)
-					}
-
-				}
-
-				// Respond to user the current time, currently locked to the computer the bot is running on
-				if usermessage == "!time" {
-					if irc.StreamerTimeToggle == true {
-						TimeCommands("StreamerTime", irc.conn, irc.ChannelName, irc.BotName, username[2])
-					}
-				}
-
-				if usermessage == "!uptime" {
-					TimeCommands("Uptime", irc.conn, irc.ChannelName, irc.BotName, username[2])
-				}
-
-			} else if strings.Contains(line, "USERNOTICE") {
-				// user variables used to split the twitch tag string to get the username
-				if strings.Contains(line, "msg-param-sub-plan") {
-					if irc.RespondToSubs == true {
-						var SubsCurrentStream []string
-						username1 := strings.Split(line, "display-name=")
-						username2 := strings.Split(username1[1], ";")
-
-						// Thank the user for subbing
-						botsubresponse := "@" + username2[0] + " " + irc.SubResponse
-						fmt.Println(botsubresponse)
-						BotSendMsg(irc.conn, irc.ChannelName, botsubresponse, irc.BotName)
-						// Append new sub to a list of new subs in current session for logging
-						SubsCurrentStream = append(SubsCurrentStream, username2[0])
-						if irc.MakeLog == true {
-							logLocation := "logs/NewSubs " + datesplit[0] + ".txt"
-							logMessage := username2[0] + "\n"
-							WriteToLog(logLocation, logMessage)
-						}
+						BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" Insufficient perms to run that command.", irc.BotName)
 					}
 				}
 			}
 
+			for k, v := range quotes {
+				if usermessage == "!quote "+k {
+					BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
+				}
+
+			}
+			if usermessage == "!quote" {
+				rows, err := database.Query("SELECT QuoteID, QuoteContent from quotes ORDER BY RANDOM() LIMIT 1;")
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+				}
+				for rows.Next() {
+					var QuoteID string
+					var QuoteContent string
+					rows.Scan(&QuoteID, &QuoteContent)
+					quotes[QuoteID] = QuoteContent
+					BotSendMsg(irc.conn, irc.ChannelName, QuoteContent, irc.BotName)
+				}
+			}
+
+			// Check if user typed in !addgoof in the chat
+			checkForGoof := strings.Contains(usermessage, "!addgoof")
+			if checkForGoof == true {
+				// Split data to separate username from value to use as new goof
+				GoofSplit := strings.Split(usermessage, " ")
+				GoofString := string(GoofSplit[1])
+				fmt.Println(GoofSplit[1])
+
+				statement, err := database.Prepare("INSERT INTO goofs (GoofName) VALUES (?)")
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+				}
+				statement.Exec(GoofString) // Inserts value of GoofString into the (?) in previous SQL statement
+
+				// Append to the slice in this run session to make it useable right away
+				goofs.GoofSlice = append(goofs.GoofSlice, GoofString)
+
+			}
+
+			// Check if usermessage has !addquote in it
+			CheckForAddQuote := strings.Contains(usermessage, "!addquote")
+			if CheckForAddQuote == true {
+				// Check if user is moderator or broadcaster
+				if CheckUserStatus(line, "moderator", irc) == "true" {
+					AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
+				} else if CheckUserStatus(line, "broadcaster", irc) == "true" {
+					AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
+				} else {
+					BotSendMsg(irc.conn, irc.ChannelName, "Must be a moderator to add a new quote.", irc.BotName)
+				}
+
+			}
+
+			// Respond to user the current time, currently locked to the computer the bot is running on
+			if usermessage == "!time" {
+				if irc.StreamerTimeToggle == true {
+					TimeCommands("StreamerTime", irc.conn, irc.ChannelName, irc.BotName, username[2])
+				}
+			}
+
+			if usermessage == "!uptime" {
+				TimeCommands("Uptime", irc.conn, irc.ChannelName, irc.BotName, username[2])
+			}
+
+		} else if strings.Contains(line, "USERNOTICE") {
+			// user variables used to split the twitch tag string to get the username
+			if strings.Contains(line, "msg-param-sub-plan") {
+				if irc.RespondToSubs == true {
+					var SubsCurrentStream []string
+					username1 := strings.Split(line, "display-name=")
+					username2 := strings.Split(username1[1], ";")
+
+					// Thank the user for subbing
+					botsubresponse := "@" + username2[0] + " " + irc.SubResponse
+					fmt.Println(botsubresponse)
+					BotSendMsg(irc.conn, irc.ChannelName, botsubresponse, irc.BotName)
+					// Append new sub to a list of new subs in current session for logging
+					SubsCurrentStream = append(SubsCurrentStream, username2[0])
+					if irc.MakeLog == true {
+						logLocation := "logs/NewSubs " + datesplit[0] + ".txt"
+						logMessage := username2[0] + "\n"
+						WriteToLog(logLocation, logMessage)
+					}
+				}
+			}
 		}
 
 	}
