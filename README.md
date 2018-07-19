@@ -3,8 +3,43 @@ On twitch, most bots do not have special privileges in regards to rules on the w
 
 Thanks :)
 
-<h1> Why make HappyBot? </h1>
+<h1> How-to / Configuration </h1>
+
+All configuration is done in the config.toml file in the config folder. Edit those values to configure the bot. 
+ 
 Primary reason was for practice and working on my programming abilities, but I did have a few goals in mind.
+You can use notepad or any other text editor you are familiar with.
+
+Below is an example config file that is filled out.
+
+    ChannelName = "#lphm"
+    ServerName = "irc.chat.twitch.tv:6667"
+    # Oauth from Twitch here
+    BotOAuth = "oauth token"
+    BotName = "MrDestructoid"
+    ##### CHAT PROPERTIES #####
+    LetModeratorsUseAllCommands = true # This allows a moderator to use any command, including broadcaster specific commands.
+
+    CheckLongMessageCap = true
+    LongMessageCap = 300
+
+    StreamerTimeToggle = true # Toggle whether !time, !uptime is enabled or not
+
+    MakeLog = false  # Disabled by default, logs can take up space fast depending on chat activity
+
+    RespondToSubs = true
+    SubResponse = "thanks for subscribing!"
+
+    PurgeForLinks = true
+    LinkChecks = [".com", ".net", ".org", ".tv"]
+
+    HydrateOn = false
+    HydrateTime = 30 # In minutes, how often you want to be reminded to hydrate!
+    HydrateMessage = "It's hydrating time!"`
+
+Be sure to not edit the ServerName. Keep the # in front of your ChannelName. Any value set to 'true' or 'false' can be changed to the other value based on what the user wants.
+
+<h1> Why make HappyBot? </h1>
 
 - Make it fast. It is designed to be a command line only program, which means that it barely takes up any CPU or RAM resources.
 
@@ -15,12 +50,6 @@ Primary reason was for practice and working on my programming abilities, but I d
 - Make it crossplatform. Having it only run on one OS is not very configurable after all; so I wanted to avoid a language and design choices that favored one platform over another. 
 
 - Make it open source. Open source is cool: it benefits everybody. Feel free to contribute changes and critique my code (I'm a newbie after all). 
-
-<h2> Next steps before a proper release </h2>
-
-- Take sqlite3 data and convert it into a map, primarily for commands which has multiple fields in the database. 
-
-- Add a quote system. This will be very easy to do once commands work properly.
 
 
 <h1> To run it </h1>
