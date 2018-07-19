@@ -1,3 +1,9 @@
+<h1> Features </h1>
+- 100% command line interface.
+- Create commands, commands with timers, quotes, and more.
+- Lightweight: it is rare the bot will exceed over 15 MB of ram, and CPU % is negligible.
+- Edit many of these values in a database.
+
 <h1> A word of warning </h1>
 On twitch, most bots do not have special privileges in regards to rules on the website. If you setup your bot using this software in such a way that is against TOS and/or gets your accounts banned, me or any of the other contributors are not responsible. The bot serves a specific purpose, and it is up to the user on how to configure it. 
 
@@ -42,6 +48,20 @@ Below is an example config file that is filled out. If there are quotes around a
     HydrateMessage = "It's hydrating time!"`
 
 Be sure to not edit the ServerName. Keep the # in front of your ChannelName. Any value set to 'true' or 'false' can be changed to the other value based on what the user wants.
+
+<h2> Add commands, quotes etc. </h2>
+
+    !addcom [!commandname] [Contents of command]
+    !editcom [!commandname] [Updated contents of command]
+    !addquote [content of quote]
+    !addbw [bad word]
+
+
+Adding and editing commands, quotes, goofs, and anything else can be done in the chat or through the command line window.
+
+<b> I highly recommend getting the DB Browser for SQLite software to open happybot.db and edit values directly. </b>
+http://sqlitebrowser.org/
+
 
 <h1> Why make HappyBot? </h1>
 
