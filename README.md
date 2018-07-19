@@ -10,7 +10,11 @@ All configuration is done in the config.toml file in the config folder. Edit tho
 Primary reason was for practice and working on my programming abilities, but I did have a few goals in mind.
 You can use notepad or any other text editor you are familiar with.
 
-Below is an example config file that is filled out.
+You will need an Oauth token. Open this link and login if necessary: https://twitchapps.com/tmi/
+
+Paste that Oauth token in the designed spot in the config file.
+
+Below is an example config file that is filled out. If there are quotes around a value, make sure they are not deleted.
 
     ChannelName = "#lphm"
     ServerName = "irc.chat.twitch.tv:6667"
