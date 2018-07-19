@@ -12,8 +12,7 @@ Thanks :)
 <h1> How-to / Configuration </h1>
 
 All configuration is done in the config.toml file in the config folder. Edit those values to configure the bot. 
- 
-Primary reason was for practice and working on my programming abilities, but I did have a few goals in mind.
+
 You can use notepad or any other text editor you are familiar with.
 
 You will need an Oauth token. Open this link and login if necessary: https://twitchapps.com/tmi/
@@ -64,6 +63,9 @@ http://sqlitebrowser.org/
 
 
 <h1> Why make HappyBot? </h1>
+
+ 
+Primary reason was for practice and working on my programming abilities, but I did have a few goals in mind.
 
 - Make it fast. It is designed to be a command line only program, which means that it barely takes up any CPU or RAM resources.
 
