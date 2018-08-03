@@ -20,6 +20,7 @@ type BotInfo struct {
 	ServerName                  string
 	BotOAuth                    string
 	BotName                     string
+	WebAppGUIEnabled            bool
 	conn                        net.Conn
 	LetModeratorsUseAllCommands bool
 	CheckLongMessageCap         bool
@@ -71,6 +72,7 @@ func CreateBot() *BotInfo {
 		ServerName:                  genConfig.ServerName,
 		BotOAuth:                    genConfig.BotOAuth,
 		BotName:                     genConfig.BotName,
+		WebAppGUIEnabled:            genConfig.WebAppGUIEnabled,
 		LetModeratorsUseAllCommands: genConfig.LetModeratorsUseAllCommands,
 		LongMessageCap:              genConfig.LongMessageCap,
 		StreamerTimeToggle:          genConfig.StreamerTimeToggle,
@@ -324,6 +326,9 @@ func main() {
 	currenttime := time.Now()
 	datestring := currenttime.String()
 	datesplit := strings.Split(datestring, " ")
+
+	// For more information on this goroutine, look at the server.go file.
+	go ServerMain()
 
 	// If user wants it, have the bot remind them to hydrate.
 	if irc.HydrateOn == true {
