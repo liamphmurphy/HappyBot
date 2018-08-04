@@ -1,7 +1,0 @@
-[[command]]
-ComKey = "!bot"
-ComResponse = "I am a bot, bleep bloop! MrDestructoid"
-
-[[command]]
-ComKey = "!help"
-ComResponse = "No. Kappa"

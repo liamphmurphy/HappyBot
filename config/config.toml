@@ -3,13 +3,16 @@ ServerName = "irc.chat.twitch.tv:6667"
 # Oauth from Twitch here
 BotOAuth = ""
 BotName = ""
+
+WebAppGUIEnabled = true #If true, server / GUI component of HappyBot will be enabled.
+
 ##### CHAT PROPERTIES #####
 LetModeratorsUseAllCommands = true # This allows a moderator to use any command, including broadcaster specific commands.
 
 CheckLongMessageCap = true
 LongMessageCap = 300
 
-StreamerTimeToggle = true # Toggle whether !time is enabled or not
+StreamerTimeToggle = true # Toggle whether !time, !uptime is enabled or not
 
 MakeLog = false  # Disabled by default, logs can take up space fast depending on chat activity
 
@@ -19,6 +22,6 @@ SubResponse = "thanks for subscribing!"
 PurgeForLinks = true
 LinkChecks = [".com", ".net", ".org", ".tv"]
 
-HydrateOn = true
+HydrateOn = false
 HydrateTime = 30 # In minutes, how often you want to be reminded to hydrate!
 HydrateMessage = "It's hydrating time!"
