@@ -84,6 +84,10 @@ Primary reason was for practice and working on my programming abilities, but I d
  
 `go get github.com/mattn/go-sqlite3`
 
+`git clone https://github.com/murnux/HappyBot`
+
+`cd HappyBot/src`
+
 Then, on Linux / Mac OS
 
 `go run *.go`
@@ -96,6 +100,8 @@ On Windows (previous method with wildcard was buggy, but maybe it'll work for yo
 
 Though you can just keep using go run, if you want an easy executable, you can build it as well.
 
-`go build bot.go consoleinput.go`
+Follow the steps from <b>To run it</b> until you reach the `go run` instructions.
+
+`go build *.go`
 
 <b> This will build a executable based off of your OS. Exe for Windows, sh for Linux etc.
