@@ -275,8 +275,8 @@ func HydrateReminder(irc *BotInfo, conn net.Conn, channel string) {
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string, name string) {
-	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
-	fmt.Println(name + ": " + message) // Display bot's message in terminal
+	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	//fmt.Println(name + ": " + message) // Display bot's message in terminal
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -334,7 +334,7 @@ func main() {
 	if irc.HydrateOn == true {
 		go HydrateReminder(irc, irc.conn, irc.ChannelName)
 	}
-	//go RunPoints(irc.conn, irc.ChannelName)
+	go RunPoints(irc.conn, irc.ChannelName)
 	TimedCommands(irc.conn, irc.ChannelName, irc.BotName)
 
 	for {

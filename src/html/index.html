@@ -7,24 +7,39 @@
             <div class="column">
                 <h2>Welcome to the front end for HappyBot.</h2>
                 <h3>Choose an option below.</h3>
-                <form action="/commands" method="GET">
-                    <input type="submit" class="commandsbutton" name="button" value="Commands">
+                <form action="/addcomhandler" method="post">
+                    Add Command<br><br>
+                    <div class="row">
+                        
+                                <div class="innercolumn">
+                                    Command Title: <input type="text" name="cname">
+                                </div>
+                                <div class="innercolumn">
+                                    Command Response: <input type="text" name="cresp">
+                                </div>
+                                <div class="innercolumn">
+                                    Command Permission: <select name="cperm" required> 
+                                            <option value="broadcaster">Broadcaster</option>
+                                            <option value="moderator">Moderator</option>
+                                            <option value="subscriber">Subscriber</option>
+                                            <option value="all">All</option>
+                                        </select>
+                                </div><br>
+                        <input type="submit" class="submitbutton" name="button" value="Add Command">
+                        
+                    </div>
                 </form><br>
-                <form action="/badwords" method="GET">
-                    <input type="submit" class="badwordsbutton" name="button" value="Badwords">
+                <form action="/badwordhandler" method="post">
+                    <div class="innercolumn">
+                        Badword Name: <input type="text" name="bwname">                      
+                    </div><br>
+                    <input type="submit" class="submitbutton" name="button" value="Add Bad Word">
                 </form>
             </div>
-            
+            <div class="column">
+                Stream Title: <input type ="text" name="sname">
+            </div>
         
-        <div class="chatcolumn">
-            <iframe frameborder="0"
-            scrolling="yes"
-            id="chat_embed"
-            src="http://www.twitch.tv/embed/dansgaming/chat"
-            height="900"
-            width="450">
-            </iframe>
-        </div>
        
     </div>
     </body>
