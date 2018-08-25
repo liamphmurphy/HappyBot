@@ -33,7 +33,6 @@ func commands(w http.ResponseWriter, r *http.Request) {
 }
 
 func addcomhandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Method:", r.Method+"\n")
 	if r.Method == "GET" {
 		t, _ := template.ParseFiles("html/index.html")
 		t.Execute(w, nil)
@@ -45,6 +44,20 @@ func addcomhandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 	AddCommand(r.Form)
+}
+
+func addtimedcomhandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	} else {
+		r.ParseForm()
+
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+
+	}
+	AddTimedCommand(r.Form)
 }
 
 func badwordhandler(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +101,21 @@ func AddCommand(form url.Values) map[string]*CustomCommand {
 	return LoadCommands()
 }
 
+func AddTimedCommand(form url.Values) map[string]*CustomTimedCommand {
+	db := InitializeDB()
+	timedComMsg := strings.Join(form["tcmsg"], " ")
+	timedComInterval := strings.Join(form["tcint"], " ")
+	timedComName := strings.Join(form["tcname"], " ")
+
+	insert, err := db.Prepare("INSERT INTO timedcommands (TimedResponse, Timer, TimedName) VALUES (?,?,?)")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	insert.Exec(timedComMsg, timedComInterval, timedComName)
+	return LoadTimedCommands()
+}
+
 func ServerMain() {
 	fmt.Println("Starting server component...")
 	http.HandleFunc("/", index)
@@ -95,6 +123,7 @@ func ServerMain() {
 	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("css"))))
 	http.HandleFunc("/addcomhandler", addcomhandler)
 	http.HandleFunc("/badwordhandler", badwordhandler)
+	http.HandleFunc("/addtimedcomhandler", addtimedcomhandler)
 
 	http.ListenAndServe(":8000", nil)
 }

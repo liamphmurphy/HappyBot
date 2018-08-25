@@ -3,7 +3,6 @@
     <head>
         <link rel="stylesheet" type="text/css" href="css/style.css"/>
         <body>
-        <div class="row">
             <div class="column">
                 <h2>Welcome to the front end for HappyBot.</h2>
                 <h3>Choose an option below.</h3>
@@ -28,17 +27,36 @@
                         <input type="submit" class="submitbutton" name="button" value="Add Command">
                         
                     </div>
-                </form><br>
+                </form>
                 <form action="/badwordhandler" method="post">
+                    <br><br><br>
+                <div class ="row">        
                     <div class="innercolumn">
                         Badword Name: <input type="text" name="bwname">                      
-                    </div><br>
+                    </div>
                     <input type="submit" class="submitbutton" name="button" value="Add Bad Word">
                 </form>
+                
             </div>
-            <div class="column">
-                Stream Title: <input type ="text" name="sname">
+            <form action="/addtimedcomhandler" method="post">
+                <br><br><br>   
+                <div class="row">
+                     
+                    <div class="innercolumn">
+                        Timed Command Message: <input type="text" name="tcmsg">   
+                    </div>                
+                    <div class="innercolumn">
+                        Timed Command Interval: <input type="text" name="tcint">
+                    </div>
+                    <div class="innercolumn">
+                        Timed Command Name: <input type="text" name ="tcname">
+                    </div>
+                    <input type="submit" class="submitbutton" name="button" value="Add Timed Command">
+                
+                </form>
+            
             </div>
+        </div>
         
        
     </div>
