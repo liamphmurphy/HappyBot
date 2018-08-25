@@ -7,7 +7,7 @@
                 <h2>Welcome to the front end for HappyBot.</h2>
                 <h3>Choose an option below.</h3>
                 <form action="/addcomhandler" method="post">
-                    Add Command<br><br>
+                    <br><h2>ADD ITEMS</h2><br>
                     <div class="row">
                         
                                 <div class="innercolumn">
@@ -52,13 +52,55 @@
                         Timed Command Name: <input type="text" name ="tcname">
                     </div>
                     <input type="submit" class="submitbutton" name="button" value="Add Timed Command">
-                
+                </div>
                 </form>
-            
+            <form action="/addgoofhandler" method="post">
+                <br><br><br>
+                <div class="row">
+                    <div class="innercolumn">
+                        Add Goof: <input type="text" name="goof">
+                    </div>
+                    <input type="submit" class="submitbutton" name="button" value="Add Goof">
+                </div>
+            </form>
+           
+        <br><br>
+        <h2>DELETE ITEMS</h2>
+        <form action="/delcomhandler" method="post">
+        <div class="row">
+            <div class="innercolumn">
+                Command Name: <input type="text" name="cname">
             </div>
+            <input type="submit" class="submitbutton" name="button" value="Delete Command">
         </div>
-        
-       
+        </form>
+        <form action="/delbadwordhandler" method="post">
+            <br><br><br>
+            <div class="row">
+                <div class="innercolumn">
+                    Badword Name: <input type="text" name="bwname">
+                </div>
+                <input type="submit" class="submitbutton" name="button" value="Delete Bad Word">
+            </div>
+        </form>
+            <form action="/deltimedcomhandler" method="post">
+                <br><br><br>
+                <div class="row">
+                    <div class="innercolumn">
+                        Timed Command Name: <input type="text" name="tcname">
+                    </div>
+                    <input type="submit" class="submitbutton" name="button" value="Delete Timed Command">
+                </div>
+            </form>
+            <form action="/delgoofhandler" method="post">
+                <br><br><br>
+                <div class="row">
+                    <div class="innercolumn">
+                        Goof Name: <input type="text" name="goof">
+                    </div>
+                    <input type="submit" class="submitbutton" name="button" value="Delete Goof">
+                </div>
+            </form>
     </div>
     </body>
     </head>

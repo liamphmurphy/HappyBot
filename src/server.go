@@ -73,6 +73,71 @@ func badwordhandler(w http.ResponseWriter, r *http.Request) {
 	AddBadWord(r.Form)
 }
 
+func addgoofhandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Method:", r.Method+"\n")
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	} else {
+		r.ParseForm()
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	}
+	AddGoofServer(r.Form)
+}
+
+func delcomhandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Method:", r.Method+"\n")
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	} else {
+		r.ParseForm()
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	}
+	DelCom(r.Form)
+}
+
+func delbadwordhandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Method:", r.Method+"\n")
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	} else {
+		r.ParseForm()
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	}
+	DelBadWord(r.Form)
+}
+
+func deltimedcomhandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Method:", r.Method+"\n")
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	} else {
+		r.ParseForm()
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	}
+	DelTimedCom(r.Form)
+}
+
+func delgoofhandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Method:", r.Method+"\n")
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	} else {
+		r.ParseForm()
+		t, _ := template.ParseFiles("html/index.html")
+		t.Execute(w, nil)
+	}
+	DelGoof(r.Form)
+}
+
 func AddBadWord(form url.Values) BadWord {
 	db := InitializeDB()
 
@@ -116,6 +181,71 @@ func AddTimedCommand(form url.Values) map[string]*CustomTimedCommand {
 	return LoadTimedCommands()
 }
 
+func AddGoofServer(form url.Values) Goof {
+	db := InitializeDB()
+	newGoof := strings.Join(form["goof"], " ")
+
+	insert, err := db.Prepare("INSERT INTO goofs (GoofName) VALUES (?)")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	insert.Exec(newGoof)
+	return LoadGoofs()
+}
+
+func DelCom(form url.Values) map[string]*CustomCommand {
+	db := InitializeDB()
+	commandName := strings.Join(form["cname"], " ")
+
+	insert, err := db.Prepare("DELETE FROM commands WHERE CommandName = ?")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	insert.Exec(commandName)
+	return LoadCommands()
+}
+
+func DelBadWord(form url.Values) BadWord {
+	db := InitializeDB()
+	badWordName := strings.Join(form["bwname"], " ")
+
+	insert, err := db.Prepare("DELETE FROM badwords WHERE Badword = ?")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	insert.Exec(badWordName)
+	return LoadBadWords()
+}
+
+func DelTimedCom(form url.Values) map[string]*CustomTimedCommand {
+	db := InitializeDB()
+	timedComName := strings.Join(form["tcname"], " ")
+
+	insert, err := db.Prepare("DELETE FROM timedcommands WHERE TimedName = ?")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	insert.Exec(timedComName)
+	return LoadTimedCommands()
+}
+
+func DelGoof(form url.Values) Goof {
+	db := InitializeDB()
+	goofName := strings.Join(form["goof"], " ")
+
+	insert, err := db.Prepare("DELETE FROM goofs WHERE GoofName = ?")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	insert.Exec(goofName)
+	return LoadGoofs()
+}
+
 func ServerMain() {
 	fmt.Println("Starting server component...")
 	http.HandleFunc("/", index)
@@ -124,6 +254,11 @@ func ServerMain() {
 	http.HandleFunc("/addcomhandler", addcomhandler)
 	http.HandleFunc("/badwordhandler", badwordhandler)
 	http.HandleFunc("/addtimedcomhandler", addtimedcomhandler)
+	http.HandleFunc("/addgoofhandler", addgoofhandler)
+	http.HandleFunc("/delcomhandler", delcomhandler)
+	http.HandleFunc("/delbadwordhandler", delbadwordhandler)
+	http.HandleFunc("/deltimedcomhandler", deltimedcomhandler)
+	http.HandleFunc("/delgoofhandler", delgoofhandler)
 
 	http.ListenAndServe(":8000", nil)
 }
