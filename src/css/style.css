@@ -8,20 +8,26 @@ body {
 }
 
 .column {
-    float: left;
-    flex: 75%;
+    width: 50%
+}
+
+.innercolumn {
+    width: 25%
+}
+
+.chat {
+    float: right;
 }
 
 .chatcolumn {
     float: right;
 }
 
-.buttoncontainer {
-    position: absolute;
-    display: inline-block;
+.centercolumn {
+    float: left;
 }
 
-.commandsbutton{
+.submitbutton{
     background-color: #008CBA;
     border: none;
     color: white;
@@ -30,19 +36,6 @@ body {
     box-sizing: border-box;
     border-radius: 4px;
 }
-.commandsbutton:hover{
-    background-color: #004080;
-}
-
-.badwordsbutton{
-    background-color: #008CBA;
-    border: none;
-    color: white;
-    text-align: center;
-    padding: 10px 20px;
-    box-sizing: border-box;
-    border-radius: 4px;
-}
-.badwordsbutton:hover{
+.submitbutton:hover{
     background-color: #004080;
 }
