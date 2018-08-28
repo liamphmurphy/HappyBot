@@ -23,6 +23,7 @@ type BotInfo struct {
 	WebAppGUIEnabled            bool
 	conn                        net.Conn
 	LetModeratorsUseAllCommands bool
+	CasterMessage               string
 	CheckLongMessageCap         bool
 	LongMessageCap              int
 	StreamerTimeToggle          bool
@@ -74,6 +75,7 @@ func CreateBot() *BotInfo {
 		BotName:                     genConfig.BotName,
 		WebAppGUIEnabled:            genConfig.WebAppGUIEnabled,
 		LetModeratorsUseAllCommands: genConfig.LetModeratorsUseAllCommands,
+		CasterMessage:               genConfig.CasterMessage,
 		LongMessageCap:              genConfig.LongMessageCap,
 		StreamerTimeToggle:          genConfig.StreamerTimeToggle,
 		MakeLog:                     genConfig.MakeLog,
@@ -149,7 +151,7 @@ func WriteToLog(log string, text string) {
 
 // Init database and then return it
 func InitializeDB() *sql.DB {
-	database, err := sql.Open("sqlite3", "../happybot.db")
+	database, err := sql.Open("sqlite3", "happybot.db")
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}
@@ -275,8 +277,8 @@ func HydrateReminder(irc *BotInfo, conn net.Conn, channel string) {
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string, name string) {
-	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
-	//fmt.Println(name + ": " + message) // Display bot's message in terminal
+	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	fmt.Println(name + ": " + message) // Display bot's message in terminal
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -419,6 +421,8 @@ func main() {
 			if strings.Contains(usermessage, "!edittimed") || strings.Contains(usermessage, "!addtimed") {
 				if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 					TimedCommandOperations(usermessage)
+				} else {
+					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" Insufficient permissions to change commands.", irc.BotName)
 				}
 			}
 
@@ -430,6 +434,16 @@ func main() {
 
 			if usermessage == "!update" {
 				PostStreamData(irc.conn, irc.ChannelName, "title", "Darkest Dungeon")
+			}
+
+			if strings.Contains(usermessage, "!newgiveaway") {
+				BeginGiveaway(usermessage)
+			}
+
+			if strings.Contains(usermessage, "!caster") {
+				casterSplit := strings.Split(usermessage, " ")
+				casterTargetMessage := strings.Replace(irc.CasterMessage, "target", casterSplit[1], -1)
+				BotSendMsg(irc.conn, irc.ChannelName, casterTargetMessage, irc.BotName)
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc

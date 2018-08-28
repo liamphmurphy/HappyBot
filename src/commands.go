@@ -21,9 +21,10 @@ func CommandOperations(chatmessage string) map[string]*CustomCommand {
 	comKey := comSplit[1]
 	comNewValue := strings.Join(comSplit[2:], " ")
 
-	fmt.Println(comSplit[2:])
+	fmt.Println("New Value: ", comNewValue)
 	database := InitializeDB()
-	if strings.Contains(chatmessage, "!editcom") {
+	fmt.Println(database)
+	if comSplit[0] == "!editcom" {
 		rows, err := database.Prepare("UPDATE commands SET CommandResponse = ? WHERE CommandName = ?")
 		if err != nil {
 			fmt.Println(err)
@@ -31,7 +32,7 @@ func CommandOperations(chatmessage string) map[string]*CustomCommand {
 		rows.Exec(comNewValue, comKey)
 	}
 
-	if strings.Contains(chatmessage, "!addcom") {
+	if comSplit[0] == "!addcom" {
 		rows, err := database.Prepare("INSERT INTO commands (CommandName, CommandResponse) VALUES(?,?)")
 		if err != nil {
 			fmt.Println(err)
@@ -39,7 +40,7 @@ func CommandOperations(chatmessage string) map[string]*CustomCommand {
 		rows.Exec(comKey, comNewValue)
 	}
 
-	if strings.Contains(chatmessage, "!setperm") {
+	if comSplit[0] == "!setperm" {
 		rows, err := database.Prepare("UPDATE commands SET CommandPermission = ? WHERE CommandName = ?")
 		if err != nil {
 			fmt.Println(err)
