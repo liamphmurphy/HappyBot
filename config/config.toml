@@ -9,6 +9,9 @@ WebAppGUIEnabled = true #If true, server / GUI component of HappyBot will be ena
 ##### CHAT PROPERTIES #####
 LetModeratorsUseAllCommands = true # This allows a moderator to use any command, including broadcaster specific commands.
 
+# When you wish to refer to the promoted caster, type in 'target' and their username will be replaced accordingly by the bot.
+CasterMessage = "Follow @target for some awesome content! https://www.twitch.tv/target"
+
 CheckLongMessageCap = true
 LongMessageCap = 300
 
