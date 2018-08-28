@@ -410,40 +410,34 @@ func main() {
 				}
 			}
 
-			if strings.Contains(usermessage, "!editcom") || strings.Contains(usermessage, "!addcom") || strings.Contains(usermessage, "!setperm") {
-				if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
-					com = CommandOperations(usermessage)
-				} else {
-					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" Insufficient permissions to change commands.", irc.BotName)
+			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
+				if strings.Contains(usermessage, "!editcom") || strings.Contains(usermessage, "!addcom") || strings.Contains(usermessage, "!setperm") {
+					CommandOperations(usermessage)
 				}
-			}
 
-			if strings.Contains(usermessage, "!edittimed") || strings.Contains(usermessage, "!addtimed") {
-				if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
+				if strings.Contains(usermessage, "!edittimed") || strings.Contains(usermessage, "!addtimed") {
 					TimedCommandOperations(usermessage)
-				} else {
-					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" Insufficient permissions to change commands.", irc.BotName)
 				}
-			}
 
-			if usermessage == "!listcoms" {
-				paste := PostPasteBin(irc.PastebinKey, com)
-				BotSendMsg(irc.conn, irc.ChannelName, "Command list: "+paste, irc.BotName)
+				if usermessage == "!update" {
+					PostStreamData(irc.conn, irc.ChannelName, "title", "Darkest Dungeon")
+				}
 
-			}
+				if strings.Contains(usermessage, "!newgiveaway") {
+					BeginGiveaway(usermessage)
+				}
 
-			if usermessage == "!update" {
-				PostStreamData(irc.conn, irc.ChannelName, "title", "Darkest Dungeon")
-			}
+				if strings.Contains(usermessage, "!caster") {
+					casterSplit := strings.Split(usermessage, " ")
+					casterTargetMessage := strings.Replace(irc.CasterMessage, "target", casterSplit[1], -1)
+					BotSendMsg(irc.conn, irc.ChannelName, casterTargetMessage, irc.BotName)
+				}
 
-			if strings.Contains(usermessage, "!newgiveaway") {
-				BeginGiveaway(usermessage)
-			}
+				if usermessage == "!listcoms" {
+					paste := PostPasteBin(irc.PastebinKey, com)
+					BotSendMsg(irc.conn, irc.ChannelName, "Command list: "+paste, irc.BotName)
 
-			if strings.Contains(usermessage, "!caster") {
-				casterSplit := strings.Split(usermessage, " ")
-				casterTargetMessage := strings.Replace(irc.CasterMessage, "target", casterSplit[1], -1)
-				BotSendMsg(irc.conn, irc.ChannelName, casterTargetMessage, irc.BotName)
+				}
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
