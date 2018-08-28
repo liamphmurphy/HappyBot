@@ -361,7 +361,9 @@ func main() {
 	datesplit := strings.Split(datestring, " ")
 
 	// For more information on this goroutine, look at the server.go file.
-	go ServerMain()
+	if irc.WebAppGUIEnabled == true {
+		go ServerMain()
+	}
 
 	// If user wants it, have the bot remind them to hydrate.
 	if irc.HydrateOn == true {
