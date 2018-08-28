@@ -275,6 +275,37 @@ func HydrateReminder(irc *BotInfo, conn net.Conn, channel string) {
 	}
 }
 
+// Check to see if user is in the permitted slice
+func UserInSlice(user string, perm []string) bool {
+	for _, username := range perm {
+		if username == user {
+			return true
+		}
+	}
+	return false
+}
+
+// For sake of removing after a link is posted, iterate through the slice and get the element index
+func GetSlicePosition(user string, perm []string) int {
+	x := 0
+	for _, username := range perm {
+		x++
+		if username == user {
+			return x - 1
+		}
+	}
+	return -1
+}
+
+// With the element index known, remove user from slice
+func RemoveFromSlice(index int, perm []string) []string {
+	perm[index] = perm[len(perm)-1]
+	perm[len(perm)-1] = ""
+	perm = perm[:len(perm)-1]
+
+	return perm
+}
+
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string, name string) {
 	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
@@ -339,6 +370,8 @@ func main() {
 	go RunPoints(irc.conn, irc.ChannelName)
 	TimedCommands(irc.conn, irc.ChannelName, irc.BotName)
 
+	var permUsers []string
+
 	for {
 		go ConsoleInput(irc.conn, irc.ChannelName, irc.BotName)
 		line, err := proto.ReadLine()
@@ -392,24 +425,25 @@ func main() {
 			for _, v := range irc.LinkChecks {
 				if strings.Contains(usermessage, v) {
 					if irc.PurgeForLinks == true {
-						// Check for different types of user badges (should find a better way to check this)
-						if CheckUserStatus(line, "subscriber", irc) == "true" {
-							fmt.Println("Link permitted: Sub.")
-						}
-						if CheckUserStatus(line, "moderator", irc) == "true" {
-							fmt.Println("Link permitted: Moderator.")
-						}
-						if CheckUserStatus(line, "broadcaster", irc) == "true" {
-							fmt.Println("Link permitted: Broadcaster.")
-						} else {
+
+						// Check if user is in the permitted slice
+						userCheck := UserInSlice(username[2], permUsers)
+						// If user is a moderator / broadcaster, just let them post link
+						if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
+							fmt.Println("Link permitted.")
+						} else if userCheck == true { // If not a moderator / broadcaster, but is in the permitted slice, let them post link then remove them
+							fmt.Println("Link permitted.")
+							position := GetSlicePosition(username[2], permUsers)
+							permUsers = RemoveFromSlice(position, permUsers)
+						} else { // If none of the above is true, purge user
 							botResponse := "/timeout " + username[2] + " 1"
 							BotSendMsg(irc.conn, irc.ChannelName, botResponse, irc.BotName)
-							//BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" please ask for permission to post a link.", irc.BotName)
 						}
 					}
 				}
 			}
 
+			// Check if a user is moderator or broadcaster before checking conditions for multiple commands.
 			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 				if strings.Contains(usermessage, "!editcom") || strings.Contains(usermessage, "!addcom") || strings.Contains(usermessage, "!setperm") {
 					CommandOperations(usermessage)
@@ -437,6 +471,11 @@ func main() {
 					paste := PostPasteBin(irc.PastebinKey, com)
 					BotSendMsg(irc.conn, irc.ChannelName, "Command list: "+paste, irc.BotName)
 
+				}
+
+				if strings.Contains(usermessage, "!permit") {
+					permitSplit := strings.Split(usermessage, " ")
+					permUsers = append(permUsers, permitSplit[1])
 				}
 			}
 
