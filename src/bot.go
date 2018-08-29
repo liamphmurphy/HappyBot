@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"net/textproto"
 	"os"
@@ -373,6 +374,8 @@ func main() {
 	TimedCommands(irc.conn, irc.ChannelName, irc.BotName)
 
 	var permUsers []string
+	giveawayEntryTerm := "giveawayisnil"
+	var giveawayUsers []string
 
 	for {
 		go ConsoleInput(irc.conn, irc.ChannelName, irc.BotName)
@@ -434,7 +437,6 @@ func main() {
 						if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 							fmt.Println("Link permitted.")
 						} else if userCheck == true { // If not a moderator / broadcaster, but is in the permitted slice, let them post link then remove them
-							fmt.Println("Link permitted.")
 							position := GetSlicePosition(username[2], permUsers)
 							permUsers = RemoveFromSlice(position, permUsers)
 						} else { // If none of the above is true, purge user
@@ -460,7 +462,21 @@ func main() {
 				}
 
 				if strings.Contains(usermessage, "!newgiveaway") {
-					BeginGiveaway(usermessage)
+					giveawaySplit := strings.Split(usermessage, " ")
+					giveawayEntryTerm = giveawaySplit[1]
+				}
+
+				if strings.Contains(usermessage, "!endgiveaway") {
+					if giveawayEntryTerm != "giveawayisnil" {
+						rand.Seed(time.Now().Unix())
+						winner := giveawayUsers[rand.Intn(len(giveawayUsers))]
+						giveawayEntryTerm = "giveawayisnil"
+
+						giveawayUsers = giveawayUsers[:0]
+						BotSendMsg(irc.conn, irc.ChannelName, winner+" is the winner!", irc.BotName)
+					} else {
+						BotSendMsg(irc.conn, irc.ChannelName, "There is no giveaway running.", irc.BotName)
+					}
 				}
 
 				if strings.Contains(usermessage, "!caster") {
@@ -478,7 +494,12 @@ func main() {
 				if strings.Contains(usermessage, "!permit") {
 					permitSplit := strings.Split(usermessage, " ")
 					permUsers = append(permUsers, permitSplit[1])
+					BotSendMsg(irc.conn, irc.ChannelName, permitSplit[1]+" can now post one link in chat.", irc.BotName)
 				}
+			}
+			if usermessage == giveawayEntryTerm {
+				giveawayUsers = append(giveawayUsers, username[2])
+				fmt.Println(giveawayUsers)
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
