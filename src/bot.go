@@ -212,11 +212,26 @@ func AddQuote(conn net.Conn, channel string, message string, usermessage string,
 	currentTime := time.Now()
 	newTime := currentTime.Format("2006-01-02")
 	newQuote := quoteSplit[1] + " - " + newTime
-	statement, err := database.Prepare("INSERT INTO quotes (QuoteContent) VALUES (?)")
+
+	rows, _ := database.Query("SELECT QuoteID, QuoteContent from quotes")
+
+	quotes := map[string]string{}
+	var counter int
+	for rows.Next() {
+		counter++
+		var QuoteID string
+		var QuoteContent string
+		rows.Scan(&QuoteID, &QuoteContent)
+		quotes[QuoteID] = QuoteContent
+	}
+
+	newQuoteID := counter + 1
+
+	statement, err := database.Prepare("INSERT INTO quotes (QuoteID, QuoteContent) VALUES (?, ?)")
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}
-	statement.Exec(newQuote)
+	statement.Exec(newQuoteID, newQuote)
 	BotSendMsg(conn, channel, "Quote added!", name)
 
 	return LoadQuotes()
