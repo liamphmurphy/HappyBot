@@ -211,7 +211,7 @@ func AddQuote(conn net.Conn, channel string, message string, usermessage string,
 	quoteSplit := strings.Split(usermessage, "!addquote ")
 	currentTime := time.Now()
 	newTime := currentTime.Format("2006-01-02")
-	newQuote := quoteSplit[1] + " - " + newTime
+	newQuote := quoteSplit[1] + " -- " + newTime
 
 	rows, _ := database.Query("SELECT QuoteID, QuoteContent from quotes")
 
@@ -324,8 +324,8 @@ func RemoveFromSlice(index int, perm []string) []string {
 
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(conn net.Conn, channel string, message string, name string) {
-	fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
-	fmt.Println(name + ": " + message) // Display bot's message in terminal
+	//fmt.Fprintf(conn, "PRIVMSG %s :%s\r\n", channel, message)
+	//fmt.Println(name + ": " + message) // Display bot's message in terminal
 }
 
 /* ConsoleInput function for reading user input in cmd line when
@@ -464,8 +464,8 @@ func main() {
 
 			// Check if a user is moderator or broadcaster before checking conditions for multiple commands.
 			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
-				if strings.Contains(usermessage, "!editcom") || strings.Contains(usermessage, "!addcom") || strings.Contains(usermessage, "!setperm") {
-					CommandOperations(usermessage)
+				if strings.Contains(usermessage, "!editcom") || strings.Contains(usermessage, "!addcom") || strings.Contains(usermessage, "!setperm") || strings.Contains(usermessage, "!delcom") {
+					com = CommandOperations(usermessage)
 				}
 
 				if strings.Contains(usermessage, "!edittimed") || strings.Contains(usermessage, "!addtimed") {
@@ -588,9 +588,9 @@ func main() {
 			if CheckForAddQuote == true {
 				// Check if user is moderator or broadcaster
 				if CheckUserStatus(line, "moderator", irc) == "true" {
-					AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
+					quotes = AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
 				} else if CheckUserStatus(line, "broadcaster", irc) == "true" {
-					AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
+					quotes = AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
 				} else {
 					BotSendMsg(irc.conn, irc.ChannelName, "Must be a moderator to add a new quote.", irc.BotName)
 				}
@@ -612,17 +612,16 @@ func main() {
 			// user variables used to split the twitch tag string to get the username
 			if strings.Contains(line, "msg-param-sub-plan") {
 				if irc.RespondToSubs == true {
-					var SubsCurrentStream []string
+					var subsCurrentStream []string
 					username1 := strings.Split(line, "display-name=")
 					username2 := strings.Split(username1[1], ";")
 
 					// Thank the user for subbing
-					botsubresponse := "@" + username2[0] + " " + irc.SubResponse
-					fmt.Println(botsubresponse)
-					BotSendMsg(irc.conn, irc.ChannelName, botsubresponse, irc.BotName)
+					botSubResponse := strings.Replace(irc.SubResponse, "target", username2[0], -1)
+					BotSendMsg(irc.conn, irc.ChannelName, botSubResponse, irc.BotName)
 					// Append new sub to a list of new subs in current session for logging
-					SubsCurrentStream = append(SubsCurrentStream, username2[0])
 					if irc.MakeLog == true {
+						subsCurrentStream = append(subsCurrentStream, username2[0])
 						logLocation := "logs/NewSubs " + datesplit[0] + ".txt"
 						logMessage := username2[0] + "\n"
 						WriteToLog(logLocation, logMessage)
