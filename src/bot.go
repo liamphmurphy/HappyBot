@@ -472,8 +472,14 @@ func main() {
 					TimedCommandOperations(usermessage)
 				}
 
-				if usermessage == "!update" {
-					PostStreamData(irc.conn, irc.ChannelName, "title", "Darkest Dungeon")
+				if strings.Contains(usermessage, "!title") {
+					changeTitleSplit := strings.Split(usermessage, " ")
+					PostStreamData(irc, irc.conn, irc.ChannelName, "title", changeTitleSplit[1:])
+				}
+
+				if strings.Contains(usermessage, "!game") {
+					changeGameSplit := strings.Split(usermessage, " ")
+					PostStreamData(irc, irc.conn, irc.ChannelName, "game", changeGameSplit[1:])
 				}
 
 				if strings.Contains(usermessage, "!newgiveaway") {

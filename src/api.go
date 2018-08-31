@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -64,28 +66,40 @@ func StreamData(conn net.Conn, channel string) Stream {
 
 }
 
-func PostStreamData(conn net.Conn, channel string, info string, value string) {
+func PostStreamData(irc *BotInfo, conn net.Conn, channel string, changeType string, value []string) {
 	newChannel := SplitChannelName(channel)
 	data := ApiCall(conn, channel, "GET", "https://api.twitch.tv/helix/users?login="+newChannel)
+	newValue := strings.Join(value, " ")
 
 	s := User{}
 	json.Unmarshal(data, &s)
 
-	newData := url.Values{}
-	newData.Set(info, value)
+	newOAuth := strings.Split(irc.BotOAuth, "oauth:")
 
-	for _, val := range s.Data {
-		//b := bytes.NewBufferString(newData.Encode())
-		channelID := val.ID
-		resp, _ := http.PostForm("https://api.twitch.tv/kraken/streams/"+channelID, newData)
-		resp.Header.Set("Client-ID", "orsdrjf636aronx93hacdpk32xoi9k")
+	var dataToSend []byte
+	if changeType == "title" {
+		dataToSend = []byte(`{"channel": {"status": "` + newValue + `"}}`)
+	} else if changeType == "game" {
+		dataToSend = []byte(`{"channel": {"game": "` + newValue + `"}}`)
 	}
 
-	/*_, err := http.PostForm("https://api.twitch.tv/helix/streams?user_login="+newChannel, streamData)
-	if err != nil {
-		fmt.Println(err)
-	}*/
+	var channelID string
+	for _, val := range s.Data {
+		channelID = val.ID + "/"
+	}
+	url := "https://api.twitch.tv/kraken/channels/" + channelID
+	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(dataToSend))
+	req.Header.Set("Client-ID", "orsdrjf636aronx93hacdpk32xoi9k")
+	req.Header.Set("Authorization", "OAuth "+newOAuth[1])
+	req.Header.Set("Accept", "application/vnd.twitchtv.v5+json")
+	req.Header.Set("Content-Type", "application/json")
 
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
 }
 
 func GetViewers(conn net.Conn, channel string) Viewers {
