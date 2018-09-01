@@ -1,37 +1,54 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
 	"net"
 	"time"
 )
 
-func RunPoints(conn net.Conn, channel string) {
+func UserInDB(db *sql.DB, username string) bool {
+	checkUser := "SELECT Username FROM points WHERE Username = ?"
+	err := db.QueryRow(checkUser, username).Scan(&username)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			log.Print(err)
+		}
+		return false
+	}
+	return true
+}
+
+func RunPoints(timer time.Duration, modifier int, conn net.Conn, channel string) {
 	database := InitializeDB()
-	currentUsers := GetViewers(conn, channel)
-	var points int
-
-	pointsMap := make(map[string]int)
-
-	for {
+	var Points int
+	for range time.NewTicker(timer * time.Second).C {
+		currentUsers := GetViewers(conn, channel)
 		tx, err := database.Begin()
 		if err != nil {
 			fmt.Println("Error starting points transaction: ", err)
 		}
 
-		statement, _ := tx.Prepare("INSERT INTO points (Username, Points) VALUES (?, ?)")
-		for range time.NewTicker(5 * time.Second).C {
-			points++
-			for _, v := range currentUsers.Chatters.CurrentViewers {
-				pointsMap[v] = points
-				statement.Exec(v, points)
+		for _, v := range currentUsers.Chatters.CurrentViewers {
+			userCheck := UserInDB(database, v)
+			if userCheck == false {
+				statement, _ := tx.Prepare("INSERT INTO points (Username, Points) VALUES (?, ?)")
+				statement.Exec(v, 1)
+			} else {
 
+				err = tx.QueryRow("Select Points FROM points WHERE Username = ?", v).Scan(&Points)
+				if err != nil {
+
+				} else {
+					Points = Points + modifier
+					statement, _ := tx.Prepare("UPDATE points SET Points = ? WHERE username = ?")
+					statement.Exec(Points, v)
+				}
 			}
+		}
 
-		}
-		for range time.NewTicker(15 * time.Second).C {
-			tx.Commit()
-		}
+		tx.Commit()
 	}
 
 }
