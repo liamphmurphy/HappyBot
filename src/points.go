@@ -8,6 +8,18 @@ import (
 	"time"
 )
 
+func GetUserPoints(username string) int {
+	database := InitializeDB()
+	var Points int
+	err := database.QueryRow("SELECT Points FROM points WHERE Username = ?", username).Scan(&Points)
+	if err != nil {
+		return 0
+	}
+	fmt.Println("Reached points")
+	return Points
+
+}
+
 func UserInDB(db *sql.DB, username string) bool {
 	checkUser := "SELECT Username FROM points WHERE Username = ?"
 	err := db.QueryRow(checkUser, username).Scan(&username)

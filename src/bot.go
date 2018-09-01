@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/textproto"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,9 @@ type BotInfo struct {
 	BotOAuth                    string
 	BotName                     string
 	WebAppGUIEnabled            bool
+	PointsSystemEnabled         bool
+	PointsValueModifier         int
+	PointsIncrementTime         time.Duration
 	conn                        net.Conn
 	LetModeratorsUseAllCommands bool
 	CasterMessage               string
@@ -75,6 +79,9 @@ func CreateBot() *BotInfo {
 		BotOAuth:                    genConfig.BotOAuth,
 		BotName:                     genConfig.BotName,
 		WebAppGUIEnabled:            genConfig.WebAppGUIEnabled,
+		PointsSystemEnabled:         genConfig.PointsSystemEnabled,
+		PointsValueModifier:         genConfig.PointsValueModifier,
+		PointsIncrementTime:         genConfig.PointsIncrementTime,
 		LetModeratorsUseAllCommands: genConfig.LetModeratorsUseAllCommands,
 		CasterMessage:               genConfig.CasterMessage,
 		LongMessageCap:              genConfig.LongMessageCap,
@@ -385,7 +392,10 @@ func main() {
 	if irc.HydrateOn == true {
 		go HydrateReminder(irc, irc.conn, irc.ChannelName)
 	}
-	go RunPoints(irc.conn, irc.ChannelName)
+
+	if irc.PointsSystemEnabled == true {
+		go RunPoints(irc.PointsIncrementTime, irc.PointsValueModifier, irc.conn, irc.ChannelName)
+	}
 	TimedCommands(irc.conn, irc.ChannelName, irc.BotName)
 
 	var permUsers []string
@@ -521,6 +531,12 @@ func main() {
 			if usermessage == giveawayEntryTerm {
 				giveawayUsers = append(giveawayUsers, username[2])
 				fmt.Println(giveawayUsers)
+			}
+
+			if usermessage == "!points" {
+				userPoints := GetUserPoints(username[2])
+				pointString := strconv.Itoa(userPoints)
+				BotSendMsg(irc.conn, irc.ChannelName, "You have "+pointString+" points.", irc.BotName)
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
