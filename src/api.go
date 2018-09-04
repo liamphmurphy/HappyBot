@@ -25,6 +25,13 @@ type Stream struct {
 	} `json:"data"`
 }
 
+type Game struct {
+	Data []struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"data"`
+}
+
 type User struct {
 	Data []struct {
 		ID string `json:"id"`
@@ -32,8 +39,7 @@ type User struct {
 }
 
 type Viewers struct {
-	ChatterCount int `json:"chatter_count"`
-	Chatters     struct {
+	Chatters struct {
 		CurrentModerators []string `json:"moderators"`
 		CurrentViewers    []string `json:"viewers"`
 	} `json:"chatters"`
@@ -56,14 +62,31 @@ func ApiCall(conn net.Conn, channel string, httpType string, apiUrl string) []by
 }
 
 func StreamData(conn net.Conn, channel string) Stream {
-	// Create a http client
-	//newChannel := SplitChannelName(channel)
-	data := ApiCall(conn, channel, "GET", "https://api.twitch.tv/helix/streams?user_login=lil_lexi")
+	newChannel := SplitChannelName(channel)
+	data := ApiCall(conn, channel, "GET", "https://api.twitch.tv/helix/streams?user_login="+newChannel)
 	// Create a new object of Stream and unmarshal JSON into it
 	s := Stream{}
 	json.Unmarshal(data, &s)
 	return s
 
+}
+
+func GetGame(conn net.Conn, channel string) Game {
+	newChannel := SplitChannelName(channel)
+	data := ApiCall(conn, channel, "GET", "https://api.twitch.tv/helix/streams?user_login="+newChannel)
+
+	s := Stream{}
+	json.Unmarshal(data, &s)
+	var gameID string
+	for _, val := range s.Data {
+		gameID = val.GameID
+	}
+
+	gameStruct := Game{}
+	gameCall := ApiCall(conn, channel, "GET", "https://api.twitch.tv/helix/games?id="+gameID)
+	json.Unmarshal(gameCall, &gameStruct)
+
+	return gameStruct
 }
 
 func PostStreamData(irc *BotInfo, conn net.Conn, channel string, changeType string, value []string) {
@@ -73,7 +96,6 @@ func PostStreamData(irc *BotInfo, conn net.Conn, channel string, changeType stri
 
 	s := User{}
 	json.Unmarshal(data, &s)
-
 	newOAuth := strings.Split(irc.BotOAuth, "oauth:")
 
 	var dataToSend []byte

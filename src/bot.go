@@ -24,8 +24,10 @@ type BotInfo struct {
 	BotName                     string
 	WebAppGUIEnabled            bool
 	PointsSystemEnabled         bool
+	PointsCommand               string
 	PointsValueModifier         int
 	PointsIncrementTime         time.Duration
+	PointsMessage               string
 	conn                        net.Conn
 	LetModeratorsUseAllCommands bool
 	CasterMessage               string
@@ -80,8 +82,10 @@ func CreateBot() *BotInfo {
 		BotName:                     genConfig.BotName,
 		WebAppGUIEnabled:            genConfig.WebAppGUIEnabled,
 		PointsSystemEnabled:         genConfig.PointsSystemEnabled,
+		PointsCommand:               genConfig.PointsCommand,
 		PointsValueModifier:         genConfig.PointsValueModifier,
 		PointsIncrementTime:         genConfig.PointsIncrementTime,
+		PointsMessage:               genConfig.PointsMessage,
 		LetModeratorsUseAllCommands: genConfig.LetModeratorsUseAllCommands,
 		CasterMessage:               genConfig.CasterMessage,
 		LongMessageCap:              genConfig.LongMessageCap,
@@ -482,12 +486,12 @@ func main() {
 					TimedCommandOperations(usermessage)
 				}
 
-				if strings.Contains(usermessage, "!title") {
+				if strings.Contains(usermessage, "!settitle") {
 					changeTitleSplit := strings.Split(usermessage, " ")
 					PostStreamData(irc, irc.conn, irc.ChannelName, "title", changeTitleSplit[1:])
 				}
 
-				if strings.Contains(usermessage, "!game") {
+				if strings.Contains(usermessage, "!setgame") {
 					changeGameSplit := strings.Split(usermessage, " ")
 					PostStreamData(irc, irc.conn, irc.ChannelName, "game", changeGameSplit[1:])
 				}
@@ -512,7 +516,7 @@ func main() {
 
 				if strings.Contains(usermessage, "!caster") {
 					casterSplit := strings.Split(usermessage, " ")
-					casterTargetMessage := strings.Replace(irc.CasterMessage, "target", casterSplit[1], -1)
+					casterTargetMessage := strings.Replace(irc.CasterMessage, "{target}", casterSplit[1], -1)
 					BotSendMsg(irc.conn, irc.ChannelName, casterTargetMessage, irc.BotName)
 				}
 
@@ -532,11 +536,25 @@ func main() {
 				giveawayUsers = append(giveawayUsers, username[2])
 				fmt.Println(giveawayUsers)
 			}
-
-			if usermessage == "!points" {
+			if usermessage == irc.PointsCommand {
 				userPoints := GetUserPoints(username[2])
 				pointString := strconv.Itoa(userPoints)
-				BotSendMsg(irc.conn, irc.ChannelName, "You have "+pointString+" points.", irc.BotName)
+				pointsTargetMessage := strings.Replace(irc.PointsMessage, "{target}", username[2], -1)
+				pointsTargetMessage = strings.Replace(pointsTargetMessage, "{value}", pointString, -1)
+				BotSendMsg(irc.conn, irc.ChannelName, pointsTargetMessage, irc.BotName)
+			}
+
+			if usermessage == "!game" {
+				game := GetGame(irc.conn, irc.ChannelName)
+				var gameName string
+				if len(game.Data) > 0 {
+					for _, val := range game.Data {
+						gameName = val.Name
+						BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+", "+gameName, irc.BotName)
+					}
+				} else {
+					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+", stream is offline.", irc.BotName)
+				}
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
@@ -653,4 +671,5 @@ func main() {
 		}
 
 	}
+
 }
