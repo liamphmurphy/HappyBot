@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -19,13 +18,11 @@ func RandomInt(min int, max int) int {
 }
 
 func Roulette(irc *BotInfo, username string, message string) {
-	fmt.Println("test lol")
 	rouletteMap := make(map[int]string)
 
 	winningKey := "red"
 
 	optionsSplit := strings.Split(message, " ")
-	fmt.Println(optionsSplit)
 
 	var bet int
 	// Bet is the points the user is risking, either a normal number or 'all'
@@ -79,22 +76,37 @@ func Roulette(irc *BotInfo, username string, message string) {
 
 	for k, v := range rouletteMap {
 		if k == randomNumber {
-			fmt.Println("Key: ", k)
 			if v == winningKey {
 				winnings := userPoints + (bet * 2)
 				UpdateUserPoints(username, winnings)
-				baseString := "Dang, it's your lucky day! {target} just got {value} points!"
+				randomMessageIndex := RandomInt(0, len(irc.RouletteWinMessages))
+				baseString := irc.RouletteWinMessages[randomMessageIndex]
 				replaceTarget := ReplaceStrings(baseString, "{target}", username)
 				replaceValue := ReplaceStrings(replaceTarget, "{value}", strconv.Itoa(winnings))
-				BotSendMsg(irc.conn, irc.ChannelName, replaceValue, irc.BotName)
+				replaceCurrency := ReplaceStrings(replaceValue, "{currency}", irc.PointsName)
+				BotSendMsg(irc.conn, irc.ChannelName, replaceCurrency, irc.BotName)
 			} else {
 				penalty := userPoints - bet
 				UpdateUserPoints(username, penalty)
-				baseString := "A sad day indeed... {target} just lost {value} points."
+				randomMessageIndex := RandomInt(0, len(irc.RouletteLossMessages))
+				baseString := irc.RouletteLossMessages[randomMessageIndex]
 				replaceTarget := ReplaceStrings(baseString, "{target}", username)
 				replaceValue := ReplaceStrings(replaceTarget, "{value}", strconv.Itoa(bet))
-				BotSendMsg(irc.conn, irc.ChannelName, replaceValue, irc.BotName)
+				replaceCurrency := ReplaceStrings(replaceValue, "{currency}", irc.PointsName)
+				BotSendMsg(irc.conn, irc.ChannelName, replaceCurrency, irc.BotName)
 			}
+		}
+	}
+
+}
+
+// GameRoot will serve as a way to check if a game is enabled in config.toml before it is run when a user calls it.
+func GameRoot(irc *BotInfo, username string, message string, game string) {
+	if game == "roulette" {
+		if irc.RouletteEnabled == true {
+			Roulette(irc, username, message)
+		} else {
+			BotSendMsg(irc.conn, irc.ChannelName, "@"+username+", that game is not enabled.", irc.BotName)
 		}
 	}
 

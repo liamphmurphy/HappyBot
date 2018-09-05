@@ -24,10 +24,14 @@ type BotInfo struct {
 	BotName                     string
 	WebAppGUIEnabled            bool
 	PointsSystemEnabled         bool
-	PointsCommand               string
+	PointsName                  string
 	PointsValueModifier         int
 	PointsIncrementTime         time.Duration
 	PointsMessage               string
+	GamesEnabled                bool
+	RouletteEnabled             bool
+	RouletteWinMessages         []string
+	RouletteLossMessages        []string
 	conn                        net.Conn
 	LetModeratorsUseAllCommands bool
 	CasterMessage               string
@@ -82,10 +86,14 @@ func CreateBot() *BotInfo {
 		BotName:                     genConfig.BotName,
 		WebAppGUIEnabled:            genConfig.WebAppGUIEnabled,
 		PointsSystemEnabled:         genConfig.PointsSystemEnabled,
-		PointsCommand:               genConfig.PointsCommand,
+		PointsName:                  genConfig.PointsName,
 		PointsValueModifier:         genConfig.PointsValueModifier,
 		PointsIncrementTime:         genConfig.PointsIncrementTime,
 		PointsMessage:               genConfig.PointsMessage,
+		GamesEnabled:                genConfig.GamesEnabled,
+		RouletteEnabled:             genConfig.RouletteEnabled,
+		RouletteWinMessages:         genConfig.RouletteWinMessages,
+		RouletteLossMessages:        genConfig.RouletteLossMessages,
 		LetModeratorsUseAllCommands: genConfig.LetModeratorsUseAllCommands,
 		CasterMessage:               genConfig.CasterMessage,
 		LongMessageCap:              genConfig.LongMessageCap,
@@ -536,11 +544,12 @@ func main() {
 				giveawayUsers = append(giveawayUsers, username[2])
 				fmt.Println(giveawayUsers)
 			}
-			if usermessage == irc.PointsCommand {
+			if usermessage == "!"+irc.PointsName {
 				userPoints := GetUserPoints(username[2])
 				pointString := strconv.Itoa(userPoints)
 				pointsTargetMessage := strings.Replace(irc.PointsMessage, "{target}", username[2], -1)
 				pointsTargetMessage = strings.Replace(pointsTargetMessage, "{value}", pointString, -1)
+				pointsTargetMessage = ReplaceStrings(pointsTargetMessage, "{currency}", irc.PointsName)
 				BotSendMsg(irc.conn, irc.ChannelName, pointsTargetMessage, irc.BotName)
 			}
 
@@ -557,8 +566,10 @@ func main() {
 				}
 			}
 
-			if strings.Contains(usermessage, "!roulette") {
-				go Roulette(irc, username[2], usermessage)
+			if irc.GamesEnabled == true {
+				if strings.Contains(usermessage, "!roulette") {
+					go GameRoot(irc, username[2], usermessage, "roulette")
+				}
 			}
 
 			// Check for occurences of values from arrays/slices/maps etc
