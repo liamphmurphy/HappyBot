@@ -15,9 +15,14 @@ func GetUserPoints(username string) int {
 	if err != nil {
 		return 0
 	}
-	fmt.Println("Reached points")
 	return Points
 
+}
+
+func UpdateUserPoints(username string, points int) {
+	database := InitializeDB()
+	statement, _ := database.Prepare("UPDATE points SET Points = ? WHERE username = ?")
+	statement.Exec(points, username)
 }
 
 func UserInDB(db *sql.DB, username string) bool {
@@ -35,6 +40,7 @@ func UserInDB(db *sql.DB, username string) bool {
 func RunPoints(timer time.Duration, modifier int, conn net.Conn, channel string) {
 	database := InitializeDB()
 	var Points int
+	var allUsers []string
 	for range time.NewTicker(timer * time.Second).C {
 		currentUsers := GetViewers(conn, channel)
 		tx, err := database.Begin()
@@ -42,7 +48,13 @@ func RunPoints(timer time.Duration, modifier int, conn net.Conn, channel string)
 			fmt.Println("Error starting points transaction: ", err)
 		}
 
-		for _, v := range currentUsers.Chatters.CurrentViewers {
+		allUsers = append(allUsers, currentUsers.Chatters.CurrentViewers...)
+		allUsers = append(allUsers, currentUsers.Chatters.CurrentModerators...)
+
+		currentUsers.Chatters.CurrentViewers = currentUsers.Chatters.CurrentViewers[:0]
+		currentUsers.Chatters.CurrentModerators = currentUsers.Chatters.CurrentModerators[:0]
+
+		for _, v := range allUsers {
 			userCheck := UserInDB(database, v)
 			if userCheck == false {
 				statement, _ := tx.Prepare("INSERT INTO points (Username, Points) VALUES (?, ?)")
@@ -59,8 +71,9 @@ func RunPoints(timer time.Duration, modifier int, conn net.Conn, channel string)
 				}
 			}
 		}
-
 		tx.Commit()
+		allUsers = allUsers[:0]
+
 	}
 
 }

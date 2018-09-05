@@ -557,6 +557,10 @@ func main() {
 				}
 			}
 
+			if strings.Contains(usermessage, "!roulette") {
+				go Roulette(irc, username[2], usermessage)
+			}
+
 			// Check for occurences of values from arrays/slices/maps etc
 
 			for _, v := range goofs.GoofSlice {
