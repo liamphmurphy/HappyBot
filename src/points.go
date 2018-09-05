@@ -37,6 +37,12 @@ func UserInDB(db *sql.DB, username string) bool {
 	return true
 }
 
+func GivePoints(db *sql.DB, username string, amount int) {
+	currentPoints := GetUserPoints(username)
+	newAmount := currentPoints + amount
+	UpdateUserPoints(username, newAmount)
+}
+
 func RunPoints(timer time.Duration, modifier int, conn net.Conn, channel string) {
 	database := InitializeDB()
 	var Points int

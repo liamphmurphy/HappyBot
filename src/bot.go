@@ -507,6 +507,15 @@ func main() {
 				if strings.Contains(usermessage, "!newgiveaway") {
 					giveawaySplit := strings.Split(usermessage, " ")
 					giveawayEntryTerm = giveawaySplit[1]
+
+					BotSendMsg(irc.conn, irc.ChannelName, "A new giveaway has started! Type '"+giveawayEntryTerm+"' to enter!", irc.BotName)
+
+				}
+
+				if strings.Contains(usermessage, "!givepoints") {
+					splitMessage := strings.Split(usermessage, " ")
+					pointsToGive, _ := strconv.Atoi(splitMessage[2])
+					GivePoints(database, username[2], pointsToGive)
 				}
 
 				if strings.Contains(usermessage, "!endgiveaway") {
