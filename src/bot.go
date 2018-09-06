@@ -223,6 +223,24 @@ func SplitChannelName(channel string) string {
 	return newChannel[1]
 }
 
+// Bans user with provided username.
+func BanUser(irc *BotInfo, user string) {
+	fmt.Println(user, "has been banned.")
+	BotSendMsg(irc.conn, irc.ChannelName, "/ban "+user, irc.BotName)
+}
+
+// Time out user with provided username.
+func TimeOutUser(irc *BotInfo, user string) {
+	fmt.Println(user, "has been timed out.")
+	BotSendMsg(irc.conn, irc.ChannelName, "/timeout "+user+" 60", irc.BotName)
+}
+
+// Purge user with provided username.
+func PurgeUser(irc *BotInfo, user string) {
+	fmt.Println(user, "has been purged.")
+	BotSendMsg(irc.conn, irc.ChannelName, "/timeout "+user+" 1", irc.BotName)
+}
+
 // Function to add a new quote and return a map of quotes, including new one.
 func AddQuote(conn net.Conn, channel string, message string, usermessage string, name string) map[string]string {
 	database := InitializeDB()
@@ -410,19 +428,27 @@ func main() {
 	}
 	TimedCommands(irc.conn, irc.ChannelName, irc.BotName)
 
+	/* Below are variables we need to initialize so the values are kept throughout each iteration of the for loop.
+	   In the case of games like a raffle, this is unoptimal, because there are variables for raffles hanging around in the for loop
+	   even if the user turns raffles off in config.toml. */
+
+	//var raffleRunning bool
+
+	// Prepare variable for users permitted to post links.
 	var permUsers []string
+
+	// Prepare variables needed for giveaways.
 	giveawayEntryTerm := "giveawayisnil"
 	var giveawayUsers []string
 
 	for {
+		/* Run ConsoleInput on new thread
+		Allows user to type commands into terminal window */
 		go ConsoleInput(irc.conn, irc.ChannelName, irc.BotName)
 		line, err := proto.ReadLine()
 		if err != nil {
 			break
 		}
-
-		/* Run ConsoleInput on new thread
-		Allows user to type commands into terminal window */
 
 		// When Twitch servers send a ping, respond with pong to avoid disconnections.
 		if strings.Contains(line, "PING") {
@@ -432,7 +458,8 @@ func main() {
 			// Parse the data received from each chat message into something readable.
 		} else if strings.Contains(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName) {
 			userdata := strings.Split(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName)
-			username := strings.Split(userdata[0], "@")
+			splitdata := strings.Split(userdata[0], "@")
+			username := splitdata[2]
 			usermessage := strings.Replace(userdata[1], " :", "", 1)
 
 			// Display the whole cleaned up message
@@ -441,14 +468,14 @@ func main() {
 					fmt.Println(line)
 				}
 			} else {
-				fmt.Printf(username[2] + ": " + usermessage + "\n")
+				fmt.Printf(username + ": " + usermessage + "\n")
 			}
 
 			// Check if user set MakeLog in config.toml to true, if so, run
 			if irc.MakeLog == true {
 				// Use current date to mark which day the chat log is for
 				loglocation := "logs/chat/" + datesplit[0] + ".txt"
-				logmessage := (username[2] + ": " + usermessage + "\n")
+				logmessage := (username + ": " + usermessage + "\n")
 				WriteToLog(loglocation, logmessage)
 			}
 
@@ -456,9 +483,8 @@ func main() {
 			if irc.CheckLongMessageCap == true {
 				if len(usermessage) > irc.LongMessageCap {
 					fmt.Println("Very long message detected.")
-					botresponse := "/timeout " + username[1] + " 1" + "Message over max character limit."
-					BotSendMsg(irc.conn, irc.ChannelName, botresponse, irc.BotName)
-					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[1]+" please shorten your message", irc.BotName)
+					PurgeUser(irc, username)
+					BotSendMsg(irc.conn, irc.ChannelName, "@"+username+" please shorten your message", irc.BotName)
 
 				}
 			}
@@ -469,16 +495,15 @@ func main() {
 					if irc.PurgeForLinks == true {
 
 						// Check if user is in the permitted slice
-						userCheck := UserInSlice(username[2], permUsers)
+						userCheck := UserInSlice(username, permUsers)
 						// If user is a moderator / broadcaster, just let them post link
 						if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 							fmt.Println("Link permitted.")
 						} else if userCheck == true { // If not a moderator / broadcaster, but is in the permitted slice, let them post link then remove them
-							position := GetSlicePosition(username[2], permUsers)
+							position := GetSlicePosition(username, permUsers)
 							permUsers = RemoveFromSlice(position, permUsers)
 						} else { // If none of the above is true, purge user
-							botResponse := "/timeout " + username[2] + " 1"
-							BotSendMsg(irc.conn, irc.ChannelName, botResponse, irc.BotName)
+							PurgeUser(irc, username)
 						}
 					}
 				}
@@ -504,6 +529,12 @@ func main() {
 					PostStreamData(irc, irc.conn, irc.ChannelName, "game", changeGameSplit[1:])
 				}
 
+				if usermessage == "!startraffle" {
+					//raffleRunning = true
+					go GameRoot(irc, username, usermessage, "raffle")
+					BotSendMsg(irc.conn, irc.ChannelName, "A points raffle has just started. Type !raffle <amount> to enter the raffle for a chance to score big!", irc.BotName)
+				}
+
 				if strings.Contains(usermessage, "!newgiveaway") {
 					giveawaySplit := strings.Split(usermessage, " ")
 					giveawayEntryTerm = giveawaySplit[1]
@@ -515,7 +546,7 @@ func main() {
 				if strings.Contains(usermessage, "!givepoints") {
 					splitMessage := strings.Split(usermessage, " ")
 					pointsToGive, _ := strconv.Atoi(splitMessage[2])
-					GivePoints(database, username[2], pointsToGive)
+					GivePoints(database, username, pointsToGive)
 				}
 
 				if strings.Contains(usermessage, "!endgiveaway") {
@@ -550,16 +581,23 @@ func main() {
 				}
 			}
 			if usermessage == giveawayEntryTerm {
-				giveawayUsers = append(giveawayUsers, username[2])
+				giveawayUsers = append(giveawayUsers, username)
 				fmt.Println(giveawayUsers)
 			}
 			if usermessage == "!"+irc.PointsName {
-				userPoints := GetUserPoints(username[2])
+				userPoints := GetUserPoints(username)
 				pointString := strconv.Itoa(userPoints)
-				pointsTargetMessage := strings.Replace(irc.PointsMessage, "{target}", username[2], -1)
+				pointsTargetMessage := strings.Replace(irc.PointsMessage, "{target}", username, -1)
 				pointsTargetMessage = strings.Replace(pointsTargetMessage, "{value}", pointString, -1)
 				pointsTargetMessage = ReplaceStrings(pointsTargetMessage, "{currency}", irc.PointsName)
 				BotSendMsg(irc.conn, irc.ChannelName, pointsTargetMessage, irc.BotName)
+			}
+
+			if strings.Contains(usermessage, "!raffle") {
+				participating := make(map[string]chan int)
+				go RafflePoints(irc, username, usermessage, participating)
+				newUser := <-participating[username]
+				fmt.Println(newUser)
 			}
 
 			if usermessage == "!game" {
@@ -568,16 +606,16 @@ func main() {
 				if len(game.Data) > 0 {
 					for _, val := range game.Data {
 						gameName = val.Name
-						BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+", "+gameName, irc.BotName)
+						BotSendMsg(irc.conn, irc.ChannelName, "@"+username+", "+gameName, irc.BotName)
 					}
 				} else {
-					BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+", stream is offline.", irc.BotName)
+					BotSendMsg(irc.conn, irc.ChannelName, "@"+username+", stream is offline.", irc.BotName)
 				}
 			}
 
 			if irc.GamesEnabled == true {
 				if strings.Contains(usermessage, "!roulette") {
-					go GameRoot(irc, username[2], usermessage, "roulette")
+					go GameRoot(irc, username, usermessage, "roulette")
 				}
 			}
 
@@ -591,8 +629,7 @@ func main() {
 
 			for _, v := range badwords.BadwordSlice {
 				if strings.Contains(usermessage, v) {
-					fmt.Println(username[2], "has been banned.")
-					BotSendMsg(irc.conn, irc.ChannelName, "/ban "+username[2], irc.BotName)
+					BanUser(irc, username)
 				}
 			}
 
@@ -603,7 +640,7 @@ func main() {
 					} else if v.CommandPermission == "all" {
 						BotSendMsg(irc.conn, irc.ChannelName, v.CommandResponse, irc.BotName)
 					} else {
-						BotSendMsg(irc.conn, irc.ChannelName, "@"+username[2]+" Insufficient perms to run that command.", irc.BotName)
+						BotSendMsg(irc.conn, irc.ChannelName, "@"+username+" Insufficient perms to run that command.", irc.BotName)
 					}
 				}
 			}
@@ -664,12 +701,12 @@ func main() {
 			// Respond to user the current time, currently locked to the computer the bot is running on
 			if usermessage == "!time" {
 				if irc.StreamerTimeToggle == true {
-					TimeCommands("StreamerTime", irc.conn, irc.ChannelName, irc.BotName, username[2])
+					TimeCommands("StreamerTime", irc.conn, irc.ChannelName, irc.BotName, username)
 				}
 			}
 
 			if usermessage == "!uptime" {
-				TimeCommands("Uptime", irc.conn, irc.ChannelName, irc.BotName, username[2])
+				TimeCommands("Uptime", irc.conn, irc.ChannelName, irc.BotName, username)
 			}
 
 		} else if strings.Contains(line, "USERNOTICE") {
