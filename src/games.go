@@ -17,6 +17,14 @@ func RandomInt(min int, max int) int {
 	return min + rand.Intn(max-min)
 }
 
+func RafflePoints(irc *BotInfo, username string, message string, participating map[string]chan int) {
+
+	points := strings.Split(message, " ")
+	pointsInt, _ := strconv.Atoi(points[1])
+	participating[username] <- pointsInt
+
+}
+
 func Roulette(irc *BotInfo, username string, message string) {
 	rouletteMap := make(map[int]string)
 
@@ -30,7 +38,6 @@ func Roulette(irc *BotInfo, username string, message string) {
 		bet = GetUserPoints(username)
 	} else {
 		bet, _ = strconv.Atoi(optionsSplit[1])
-
 	}
 
 	rouletteMap[1] = "red"
