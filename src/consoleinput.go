@@ -4,13 +4,12 @@ import (
 	"bufio"
 	"encoding/csv"
 	"fmt"
-	"net"
 	"os"
 	"strings"
 	"time"
 )
 
-func ConsoleInput(conn net.Conn, channel string, name string) {
+func ConsoleInput(irc *BotInfo) {
 	ConsoleScanner := bufio.NewScanner(os.Stdin)
 	ConsoleScanner.Scan()
 	text := ConsoleScanner.Text()
@@ -46,7 +45,7 @@ func ConsoleInput(conn net.Conn, channel string, name string) {
 		if len(MsgSplit) <= 1 { // Len if to handle index out of range error
 			fmt.Println("Please type a message.")
 		} else {
-			BotSendMsg(conn, channel, MsgSplit[1], name)
+			BotSendMsg(irc, MsgSplit[1])
 		}
 	}
 
@@ -65,7 +64,7 @@ func ConsoleInput(conn net.Conn, channel string, name string) {
 		if len(UsernameSplit) <= 1 { // If len to handle index out of range error
 			fmt.Println("Please type a username.")
 		} else {
-			BotSendMsg(conn, channel, "/ban "+UsernameSplit[1], name)
+			BotSendMsg(irc, "/ban "+UsernameSplit[1])
 			fmt.Println(UsernameSplit[1] + " has been banned.")
 		}
 	}
@@ -77,7 +76,7 @@ func ConsoleInput(conn net.Conn, channel string, name string) {
 		if len(UsernameSplit) <= 1 { // If len to handle index out of range error
 			fmt.Println("Please type a username.")
 		} else {
-			BotSendMsg(conn, channel, "/unban "+UsernameSplit[1], name)
+			BotSendMsg(irc, "/unban "+UsernameSplit[1])
 			fmt.Println(UsernameSplit[1] + " has been unbanned.")
 		}
 	}
@@ -91,7 +90,7 @@ func ConsoleInput(conn net.Conn, channel string, name string) {
 		} else {
 			ChatCommand := ("/timeout " + UsernameSplit[1] + " 1" + " Message over max character limit.")
 			fmt.Println(ChatCommand)
-			BotSendMsg(conn, channel, ChatCommand, name)
+			BotSendMsg(irc, ChatCommand)
 			fmt.Println(UsernameSplit[1] + " has been purged.")
 		}
 	}

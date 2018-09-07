@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"strings"
 	"time"
 )
@@ -29,15 +28,15 @@ func LoadTimedCommands() map[string]*CustomTimedCommand {
 	return com
 }
 
-func TimedCommands(conn net.Conn, channel string, name string) {
+func TimedCommands(irc *BotInfo) {
 	timedcoms := LoadTimedCommands()
 	for _, v := range timedcoms {
-		go func(conn net.Conn, channel, name, response string, timer time.Duration) {
+		go func(irc *BotInfo, response string, timer time.Duration) {
 			time.Sleep(1 * time.Millisecond)
 			for range time.NewTicker(timer * time.Second).C {
-				BotSendMsg(conn, channel, response, name)
+				BotSendMsg(irc, response)
 			}
-		}(conn, channel, name, v.TimedResponse, v.Timer)
+		}(irc, v.TimedResponse, v.Timer)
 	}
 }
 

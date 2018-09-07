@@ -104,11 +104,11 @@ func CreateCommands(irc *BotInfo, com map[string]*CustomCommand, quotes map[stri
 	if CheckForAddQuote == true {
 		// Check if user is moderator or broadcaster
 		if CheckUserStatus(line, "moderator", irc) == "true" {
-			quotes = AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
+			quotes = AddQuote(irc, line, usermessage, irc.BotName)
 		} else if CheckUserStatus(line, "broadcaster", irc) == "true" {
-			quotes = AddQuote(irc.conn, irc.ChannelName, line, usermessage, irc.BotName)
+			quotes = AddQuote(irc, line, usermessage, irc.BotName)
 		} else {
-			BotSendMsg(irc.conn, irc.ChannelName, "Must be a moderator to add a new quote.", irc.BotName)
+			BotSendMsg(irc, "Must be a moderator to add a new quote.")
 		}
 
 	}
@@ -133,14 +133,14 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 		if usermessage == "!startraffle" {
 			//raffleRunning = true
 			go GameRoot(irc, username, usermessage, "raffle")
-			BotSendMsg(irc.conn, irc.ChannelName, "A points raffle has just started. Type !raffle <amount> to enter the raffle for a chance to score big!", irc.BotName)
+			BotSendMsg(irc, "A points raffle has just started. Type !raffle <amount> to enter the raffle for a chance to score big!")
 		}
 
 		if strings.Contains(usermessage, "!newgiveaway") {
 			giveawaySplit := strings.Split(usermessage, " ")
 			giveawayEntryTerm = giveawaySplit[1]
 
-			BotSendMsg(irc.conn, irc.ChannelName, "A new giveaway has started! Type '"+giveawayEntryTerm+"' to enter!", irc.BotName)
+			BotSendMsg(irc, "A new giveaway has started! Type '"+giveawayEntryTerm+"' to enter!")
 
 		}
 
@@ -157,28 +157,28 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 				giveawayEntryTerm = "giveawayisnil"
 
 				giveawayUsers = giveawayUsers[:0]
-				BotSendMsg(irc.conn, irc.ChannelName, winner+" is the winner!", irc.BotName)
+				BotSendMsg(irc, winner+" is the winner!")
 			} else {
-				BotSendMsg(irc.conn, irc.ChannelName, "There is no giveaway running.", irc.BotName)
+				BotSendMsg(irc, "There is no giveaway running.")
 			}
 		}
 
 		if strings.Contains(usermessage, "!caster") {
 			casterSplit := strings.Split(usermessage, " ")
 			casterTargetMessage := strings.Replace(irc.CasterMessage, "{target}", casterSplit[1], -1)
-			BotSendMsg(irc.conn, irc.ChannelName, casterTargetMessage, irc.BotName)
+			BotSendMsg(irc, casterTargetMessage)
 		}
 
 		if usermessage == "!listcoms" {
 			paste := PostPasteBin(irc.PastebinKey, com)
-			BotSendMsg(irc.conn, irc.ChannelName, "Command list: "+paste, irc.BotName)
+			BotSendMsg(irc, "Command list: "+paste)
 
 		}
 
 		if strings.Contains(usermessage, "!permit") {
 			permitSplit := strings.Split(usermessage, " ")
 			permUsers = append(permUsers, permitSplit[1])
-			BotSendMsg(irc.conn, irc.ChannelName, permitSplit[1]+" can now post one link in chat.", irc.BotName)
+			BotSendMsg(irc, permitSplit[1]+" can now post one link in chat.")
 		}
 	}
 	if usermessage == giveawayEntryTerm {
@@ -191,7 +191,7 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 		pointsTargetMessage := strings.Replace(irc.PointsMessage, "{target}", username, -1)
 		pointsTargetMessage = strings.Replace(pointsTargetMessage, "{value}", pointString, -1)
 		pointsTargetMessage = ReplaceStrings(pointsTargetMessage, "{currency}", irc.PointsName)
-		BotSendMsg(irc.conn, irc.ChannelName, pointsTargetMessage, irc.BotName)
+		BotSendMsg(irc, pointsTargetMessage)
 	}
 
 	if strings.Contains(usermessage, "!raffle") {
@@ -207,10 +207,10 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 		if len(game.Data) > 0 {
 			for _, val := range game.Data {
 				gameName = val.Name
-				BotSendMsg(irc.conn, irc.ChannelName, "@"+username+", "+gameName, irc.BotName)
+				BotSendMsg(irc, "@"+username+", "+gameName)
 			}
 		} else {
-			BotSendMsg(irc.conn, irc.ChannelName, "@"+username+", stream is offline.", irc.BotName)
+			BotSendMsg(irc, "@"+username+", stream is offline.")
 		}
 	}
 
@@ -222,7 +222,7 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 
 	for k, v := range quotes {
 		if usermessage == "!quote "+k {
-			BotSendMsg(irc.conn, irc.ChannelName, v, irc.BotName)
+			BotSendMsg(irc, v)
 		}
 
 	}
@@ -236,19 +236,19 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 			var QuoteContent string
 			rows.Scan(&QuoteID, &QuoteContent)
 			quotes[QuoteID] = QuoteContent
-			BotSendMsg(irc.conn, irc.ChannelName, QuoteContent, irc.BotName)
+			BotSendMsg(irc, QuoteContent)
 		}
 	}
 
 	// Respond to user the current time, currently locked to the computer the bot is running on
 	if usermessage == "!time" {
 		if irc.StreamerTimeToggle == true {
-			TimeCommands("StreamerTime", irc.conn, irc.ChannelName, irc.BotName, username)
+			TimeCommands(irc, "StreamerTime", irc.ChannelName, irc.BotName, username)
 		}
 	}
 
 	if usermessage == "!uptime" {
-		TimeCommands("Uptime", irc.conn, irc.ChannelName, irc.BotName, username)
+		TimeCommands(irc, "Uptime", irc.ChannelName, irc.BotName, username)
 	}
 
 	// Check if user set MakeLog in config.toml to true, if so, run
@@ -267,7 +267,7 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 		if len(usermessage) > irc.LongMessageCap {
 			fmt.Println("Very long message detected.")
 			PurgeUser(irc, username)
-			BotSendMsg(irc.conn, irc.ChannelName, "@"+username+" please shorten your message", irc.BotName)
+			BotSendMsg(irc, "@"+username+" please shorten your message")
 
 		}
 	}

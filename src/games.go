@@ -91,7 +91,7 @@ func Roulette(irc *BotInfo, username string, message string) {
 				replaceTarget := ReplaceStrings(baseString, "{target}", username)
 				replaceValue := ReplaceStrings(replaceTarget, "{value}", strconv.Itoa(winnings))
 				replaceCurrency := ReplaceStrings(replaceValue, "{currency}", irc.PointsName)
-				BotSendMsg(irc.conn, irc.ChannelName, replaceCurrency, irc.BotName)
+				BotSendMsg(irc, replaceCurrency)
 			} else {
 				penalty := userPoints - bet
 				UpdateUserPoints(username, penalty)
@@ -100,7 +100,7 @@ func Roulette(irc *BotInfo, username string, message string) {
 				replaceTarget := ReplaceStrings(baseString, "{target}", username)
 				replaceValue := ReplaceStrings(replaceTarget, "{value}", strconv.Itoa(bet))
 				replaceCurrency := ReplaceStrings(replaceValue, "{currency}", irc.PointsName)
-				BotSendMsg(irc.conn, irc.ChannelName, replaceCurrency, irc.BotName)
+				BotSendMsg(irc, replaceCurrency)
 			}
 		}
 	}
@@ -113,7 +113,7 @@ func GameRoot(irc *BotInfo, username string, message string, game string) {
 		if irc.RouletteEnabled == true {
 			Roulette(irc, username, message)
 		} else {
-			BotSendMsg(irc.conn, irc.ChannelName, "@"+username+", that game is not enabled.", irc.BotName)
+			BotSendMsg(irc, "@"+username+", that game is not enabled.")
 		}
 	}
 
