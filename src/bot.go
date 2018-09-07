@@ -81,10 +81,16 @@ func CreateBot() *BotInfo {
 	sendMessages := true
 	for _, v := range os.Args {
 		if v == "--quiet" {
+			fmt.Println("Quiet mode activated")
 			sendMessages = false
 		} else if v == "-q" {
 			sendMessages = false
 		}
+	}
+
+	if sendMessages == false {
+		fmt.Println("\n\tI AM QUIET... I AM... THE ABSENCE OF WORDS.")
+		fmt.Println("\tNo chat messages from bot will be sent.\n")
 	}
 
 	return &BotInfo{
@@ -448,10 +454,10 @@ func main() {
 	giveawayEntryTerm := "giveawayisnil"
 	var giveawayUsers []string
 
+	/* Run ConsoleInput on new thread
+	Allows user to type commands into terminal window */
+	go ConsoleInput(irc)
 	for {
-		/* Run ConsoleInput on new thread
-		Allows user to type commands into terminal window */
-		go ConsoleInput(irc)
 		line, err := proto.ReadLine()
 		if err != nil {
 			break
