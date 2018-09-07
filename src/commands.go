@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -25,9 +24,7 @@ func CommandOperations(chatmessage string) map[string]*CustomCommand {
 	comKey := comSplit[1]
 	comNewValue := strings.Join(comSplit[2:], " ")
 
-	fmt.Println("New Value: ", comNewValue)
 	database := InitializeDB()
-	fmt.Println(database)
 	if comSplit[0] == "!editcom" {
 		rows, err := database.Prepare("UPDATE commands SET CommandResponse = ? WHERE CommandName = ?")
 		if err != nil {
@@ -130,12 +127,6 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 			PostStreamData(irc, irc.conn, irc.ChannelName, "game", changeGameSplit[1:])
 		}
 
-		if usermessage == "!startraffle" {
-			//raffleRunning = true
-			go GameRoot(irc, username, usermessage, "raffle")
-			BotSendMsg(irc, "A points raffle has just started. Type !raffle <amount> to enter the raffle for a chance to score big!")
-		}
-
 		if strings.Contains(usermessage, "!newgiveaway") {
 			giveawaySplit := strings.Split(usermessage, " ")
 			giveawayEntryTerm = giveawaySplit[1]
@@ -148,19 +139,6 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 			splitMessage := strings.Split(usermessage, " ")
 			pointsToGive, _ := strconv.Atoi(splitMessage[2])
 			GivePoints(database, username, pointsToGive)
-		}
-
-		if strings.Contains(usermessage, "!endgiveaway") {
-			if giveawayEntryTerm != "giveawayisnil" {
-				rand.Seed(time.Now().Unix())
-				winner := giveawayUsers[rand.Intn(len(giveawayUsers))]
-				giveawayEntryTerm = "giveawayisnil"
-
-				giveawayUsers = giveawayUsers[:0]
-				BotSendMsg(irc, winner+" is the winner!")
-			} else {
-				BotSendMsg(irc, "There is no giveaway running.")
-			}
 		}
 
 		if strings.Contains(usermessage, "!caster") {
@@ -181,10 +159,7 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 			BotSendMsg(irc, permitSplit[1]+" can now post one link in chat.")
 		}
 	}
-	if usermessage == giveawayEntryTerm {
-		giveawayUsers = append(giveawayUsers, username)
-		fmt.Println(giveawayUsers)
-	}
+
 	if usermessage == "!"+irc.PointsName {
 		userPoints := GetUserPoints(username)
 		pointString := strconv.Itoa(userPoints)
@@ -215,9 +190,7 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 	}
 
 	if irc.GamesEnabled == true {
-		if strings.Contains(usermessage, "!roulette") {
-			go GameRoot(irc, username, usermessage, "roulette")
-		}
+
 	}
 
 	for k, v := range quotes {
@@ -288,6 +261,34 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 				} else { // If none of the above is true, purge user
 					PurgeUser(irc, username)
 				}
+			}
+		}
+	}
+}
+
+func UserCommands(irc *BotInfo, username string, usermessage string, line string, com map[string]*CustomCommand, quotes map[string]string, badwords BadWord, goofs Goof, permUsers []string, giveawayEntryTerm string, giveawayUsers []string, database *sql.DB) {
+	/* These iterations are not put in DefaultCommands because these include custom values, such as commands from the user.
+	This delineation is made more for code organization, not because the placement makes a huge difference. */
+	for _, v := range goofs.GoofSlice {
+		if usermessage == v {
+			BotSendMsg(irc, v)
+		}
+	}
+
+	for _, v := range badwords.BadwordSlice {
+		if strings.Contains(usermessage, v) {
+			BanUser(irc, username)
+		}
+	}
+
+	for k, v := range com {
+		if usermessage == k {
+			if CheckUserStatus(line, v.CommandPermission, irc) == "true" {
+				BotSendMsg(irc, v.CommandResponse)
+			} else if v.CommandPermission == "all" {
+				BotSendMsg(irc, v.CommandResponse)
+			} else {
+				BotSendMsg(irc, "@"+username+" Insufficient perms to run that command.")
 			}
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"net/textproto"
 	"os"
@@ -78,6 +79,7 @@ func CreateBot() *BotInfo {
 		fmt.Println("Can't read toml file due to: ", confErr)
 	}
 
+	// If an arg from user is --quiet or -q, stop bot from sending any messages to chat. This is mainly using for debugging and testing.
 	sendMessages := true
 	for _, v := range os.Args {
 		if v == "--quiet" {
@@ -374,6 +376,28 @@ func RemoveFromSlice(index int, perm []string) []string {
 	return perm
 }
 
+func Giveaway(irc *BotInfo, username string, message string, state string, users []string, running bool) (bool, []string, string) {
+	var entryTerm string
+	if state == "new" {
+		running = true
+		messageSplit := strings.Split(message, " ")
+		entryTerm = messageSplit[1]
+	} else if state == "end" {
+		running = false
+		rand.Seed(time.Now().Unix())
+		winner := users[rand.Intn(len(users))]
+		users = users[:0]
+		BotSendMsg(irc, winner+" is the winner!")
+
+	} else if state == "entry" {
+		if running == true {
+			users = append(users, username)
+		}
+	}
+
+	return running, users, entryTerm
+}
+
 // Function used throughout the program for the bot to send IRC messages
 func BotSendMsg(irc *BotInfo, message string) {
 	if irc.SendMessages == true {
@@ -452,8 +476,8 @@ func main() {
 
 	// Prepare variables needed for giveaways.
 	giveawayEntryTerm := "giveawayisnil"
+	var giveawayRunning bool
 	var giveawayUsers []string
-
 	/* Run ConsoleInput on new thread
 	Allows user to type commands into terminal window */
 	go ConsoleInput(irc)
@@ -485,31 +509,38 @@ func main() {
 				com, quotes, goofs.GoofSlice = CreateCommands(irc, com, quotes, badwords, goofs, usermessage, database, line)
 			}
 
-			// Default commands for the bot are put in DefaultCommands. Things like !caster, !permit etc can be seen there.
-			DefaultCommands(irc, username, usermessage, line, com, quotes, badwords, goofs, permUsers, giveawayEntryTerm, giveawayUsers, database)
-
-			/* These iterations are not put in DefaultCommands because these include custom values, such as commands from the user.
-			This delineation is made more for code organization, not because the placement makes a huge difference. */
-			for _, v := range goofs.GoofSlice {
-				if usermessage == v {
-					BotSendMsg(irc, v)
-				}
-			}
-
-			for _, v := range badwords.BadwordSlice {
-				if strings.Contains(usermessage, v) {
-					BanUser(irc, username)
-				}
-			}
-
-			for k, v := range com {
-				if usermessage == k {
-					if CheckUserStatus(line, v.CommandPermission, irc) == "true" {
-						BotSendMsg(irc, v.CommandResponse)
-					} else if v.CommandPermission == "all" {
-						BotSendMsg(irc, v.CommandResponse)
+			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
+				if strings.Contains(usermessage, "!newgiveaway") {
+					giveawayRunning, giveawayUsers, giveawayEntryTerm = Giveaway(irc, username, usermessage, "new", giveawayUsers, false)
+				} else if usermessage == "!endgiveaway" {
+					if giveawayRunning == true {
+						giveawayRunning, giveawayUsers, _ = Giveaway(irc, username, usermessage, "end", giveawayUsers, true)
 					} else {
-						BotSendMsg(irc, "@"+username+" Insufficient perms to run that command.")
+						BotSendMsg(irc, "Giveaway is not running.")
+					}
+				}
+			}
+			if usermessage == giveawayEntryTerm {
+				if giveawayRunning == true {
+					_, giveawayUsers, _ = Giveaway(irc, username, usermessage, "entry", giveawayUsers, true)
+				}
+			}
+
+			// Default commands for the bot are put in DefaultCommands. Things like !caster, !permit etc can be seen there.
+			go DefaultCommands(irc, username, usermessage, line, com, quotes, badwords, goofs, permUsers, giveawayEntryTerm, giveawayUsers, database)
+
+			go UserCommands(irc, username, usermessage, line, com, quotes, badwords, goofs, permUsers, giveawayEntryTerm, giveawayUsers, database)
+
+			if irc.GamesEnabled == true {
+				if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
+					if usermessage == "!startraffle" {
+						//raffleRunning = true
+						go GameRoot(irc, username, usermessage, "raffle")
+						BotSendMsg(irc, "A points raffle has just started. Type !raffle <amount> to enter the raffle for a chance to score big!")
+					}
+				} else {
+					if strings.Contains(usermessage, "!roulette") {
+						go GameRoot(irc, username, usermessage, "roulette")
 					}
 				}
 			}
