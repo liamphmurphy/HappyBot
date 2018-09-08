@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/textproto"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -345,6 +346,24 @@ func HydrateReminder(irc *BotInfo) {
 	}
 }
 
+func RemoveStringDuplicates(slice []string) []string {
+	m := make(map[string]bool)
+	for _, v := range slice {
+		if _, ok := m[v]; ok {
+			// duplicate item
+			fmt.Println(v, "is a duplicate")
+		} else {
+			m[v] = true
+		}
+	}
+
+	var result []string
+	for v, _ := range m {
+		result = append(result, v)
+	}
+	return result
+}
+
 // Check to see if user is in the permitted slice
 func UserInSlice(user string, perm []string) bool {
 	for _, username := range perm {
@@ -469,7 +488,12 @@ func main() {
 	   In the case of games like a raffle, this is unoptimal, because there are variables for raffles hanging around in the for loop
 	   even if the user turns raffles off in config.toml. */
 
-	//var raffleRunning bool
+	gameRunning := false
+	var raffleRunning bool
+
+	//var allPoints []int
+	var allUsers []string
+	var allPoints []int
 
 	// Prepare variable for users permitted to post links.
 	var permUsers []string
@@ -502,6 +526,69 @@ func main() {
 			// Display the whole cleaned up message
 			fmt.Println(username + ": " + usermessage)
 
+			if irc.GamesEnabled == true {
+				if strings.Contains(usermessage, "!roulette") {
+					go GameRoot(irc, username, usermessage, "roulette")
+				}
+				if gameRunning == true {
+					if raffleRunning == true {
+						if strings.Contains(usermessage, "!raffle") {
+							userIn := make(chan []string)
+							userOut := make(chan []string)
+							pointsIn := make(chan []int)
+							pointsOut := make(chan []int)
+
+							messageSplit := strings.Split(usermessage, " ")
+							getPointsString := messageSplit[1]
+							points, err := strconv.Atoi(getPointsString)
+							userActualPoints := GetUserPoints(username)
+							if points > userActualPoints {
+								BotSendMsg(irc, "@"+username+", you've submitted more points than you actually have.")
+							} else {
+								go func(irc *BotInfo, username string, points int, userIn <-chan []string, userOut chan []string, pointsIn <-chan []int, pointsOut chan []int) {
+									duplicateCheck := UserInSlice(username, allUsers)
+									if duplicateCheck == true {
+										BotSendMsg(irc, "@"+username+", you've already entered this raffle.")
+									} else if duplicateCheck == false {
+										allUsers = append(allUsers, username)
+										userOut <- allUsers
+
+										allPoints = append(allPoints, points)
+										pointsOut <- allPoints
+									}
+
+								}(irc, username, points, userIn, userOut, pointsIn, pointsOut)
+								if err != nil {
+									BotSendMsg(irc, "@"+username+", please enter a valid number to join the raffle.")
+								}
+
+							}
+
+						} else if usermessage == "!endraffle" {
+							totalPoints := 0
+							allUsers = RemoveStringDuplicates(allUsers)
+							for _, v := range allPoints {
+								totalPoints = totalPoints + v
+							}
+							randomElement := RandomInt(0, len(allUsers))
+							pointsString := strconv.Itoa(totalPoints)
+							winner := allUsers[randomElement]
+							BotSendMsg(irc, "@"+winner+" is the winner! They just won "+pointsString+" "+irc.PointsName+"!")
+							gameRunning = false
+							raffleRunning = false
+						}
+					}
+				} else if gameRunning == false {
+					if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
+						if usermessage == "!startraffle" {
+							BotSendMsg(irc, "A new raffle has started! Pool all your "+irc.PointsName+" together, and one winner takes it all!")
+							gameRunning = true
+							raffleRunning = true
+						}
+					}
+				}
+			}
+
 			/* If a moderator or broadcaster, their message may be to edit / add / delete a command.
 			If they are, run CreateCommands, which updates these values for the chat to use. This may not be the optimal solution,
 			but it makes it so normal users' messages aren't checked. */
@@ -530,20 +617,6 @@ func main() {
 			go DefaultCommands(irc, username, usermessage, line, com, quotes, badwords, goofs, permUsers, giveawayEntryTerm, giveawayUsers, database)
 
 			go UserCommands(irc, username, usermessage, line, com, quotes, badwords, goofs, permUsers, giveawayEntryTerm, giveawayUsers, database)
-
-			if irc.GamesEnabled == true {
-				if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
-					if usermessage == "!startraffle" {
-						//raffleRunning = true
-						go GameRoot(irc, username, usermessage, "raffle")
-						BotSendMsg(irc, "A points raffle has just started. Type !raffle <amount> to enter the raffle for a chance to score big!")
-					}
-				} else {
-					if strings.Contains(usermessage, "!roulette") {
-						go GameRoot(irc, username, usermessage, "roulette")
-					}
-				}
-			}
 
 		} else if strings.Contains(line, "USERNOTICE") {
 			currenttime := time.Now()
