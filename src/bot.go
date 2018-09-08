@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/textproto"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -487,13 +486,12 @@ func main() {
 	   In the case of games like a raffle, this is unoptimal, because there are variables for raffles hanging around in the for loop
 	   even if the user turns raffles off in config.toml. */
 
-	gameRunning := false
-	var raffleRunning bool
+	gameRunning := true
 
 	//var allPoints []int
 	var allUsers []string
 	var allPoints []int
-
+	raffleRunning := false
 	// Prepare variable for users permitted to post links.
 	var permUsers []string
 
@@ -526,77 +524,8 @@ func main() {
 			fmt.Println(username + ": " + usermessage)
 
 			if irc.GamesEnabled == true {
-				if strings.Contains(usermessage, "!roulette") {
-					go GameRoot(irc, username, usermessage, "roulette")
-				}
-				if gameRunning == true {
-					if raffleRunning == true {
-						if strings.Contains(usermessage, "!raffle") {
-							// Prepare multi-directional channels, needed to remain values of points and users throughout main for loop iteration.
-							userIn := make(chan []string)
-							userOut := make(chan []string)
-							pointsIn := make(chan []int)
-							pointsOut := make(chan []int)
-
-							// Split the user message and get points.
-							messageSplit := strings.Split(usermessage, " ")
-							getPointsString := messageSplit[1]
-							points, err := strconv.Atoi(getPointsString)
-							userActualPoints := GetUserPoints(username)
-
-							// If the points the user type is higher then what they actually have in the database, notify them and stop the raffle submission.
-							if points > userActualPoints {
-								BotSendMsg(irc, "@"+username+", you've submitted more points than you actually have.")
-							} else {
-								// Run in new goroutine, use channels to keep the data of allUsers and allPoints throughout main for loop iteration.
-								go func(irc *BotInfo, username string, points int, userIn <-chan []string, userOut chan []string, pointsIn <-chan []int, pointsOut chan []int) {
-									// If user is already in allUsers, meaning they are trying to enter the raffle twice, stop submission.
-									duplicateCheck := UserInSlice(username, allUsers)
-									if duplicateCheck == true {
-										BotSendMsg(irc, "@"+username+", you've already entered this raffle.")
-									} else if duplicateCheck == false {
-										allUsers = append(allUsers, username)
-										userOut <- allUsers
-
-										allPoints = append(allPoints, points)
-										pointsOut <- allPoints
-									}
-
-								}(irc, username, points, userIn, userOut, pointsIn, pointsOut)
-								// If an error occurs from user's message, notify them.
-								if err != nil {
-									BotSendMsg(irc, "@"+username+", please enter a valid number to join the raffle.")
-								}
-
-							}
-
-						} else if usermessage == "!endraffle" {
-							// Initialize and set totalPoints to 0 to begin calculation of all points from user submissions.
-							totalPoints := 0
-							allUsers = RemoveStringDuplicates(allUsers)
-							// For all values in allPoints, add them up together to get the winner their earnings.
-							for _, v := range allPoints {
-								totalPoints = totalPoints + v
-							}
-							// Generate a random number to pick a random index for allUsers to pick winner.
-							randomElement := RandomInt(0, len(allUsers))
-							pointsString := strconv.Itoa(totalPoints)
-							winner := allUsers[randomElement]
-							BotSendMsg(irc, "@"+winner+" is the winner! They just won "+pointsString+" "+irc.PointsName+"!")
-							// Set game and raffle running to false so further submissions will not be taken.
-							gameRunning = false
-							raffleRunning = false
-						}
-					}
-				} else if gameRunning == false {
-					// If game running is false and user is a moderator / broadcaster, they are probably starting a raffle! This stops normal users from starting raffles on their own.
-					if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
-						if usermessage == "!startraffle" {
-							BotSendMsg(irc, "A new raffle has started! Pool all your "+irc.PointsName+" together, and one winner takes it all!")
-							gameRunning = true
-							raffleRunning = true
-						}
-					}
+				if strings.Contains(usermessage, "raffle") {
+					allUsers, allPoints, gameRunning, raffleRunning = GameRoot(irc, username, usermessage, "raffle", line, allUsers, allPoints, raffleRunning, gameRunning)
 				}
 			}
 
