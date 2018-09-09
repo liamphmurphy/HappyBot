@@ -8,6 +8,18 @@ import (
 	"time"
 )
 
+type CustomCommand struct {
+	CommandName       string
+	CommandResponse   string
+	CommandPermission string
+}
+
+type CustomTimedCommand struct {
+	TimedName     string
+	TimedResponse string
+	Timer         time.Duration
+}
+
 // MakeCommand assigns the response and permissions for each command
 func MakeCommand(response, permission string) *CustomCommand {
 	return &CustomCommand{
@@ -68,18 +80,18 @@ func LoadCommands() map[string]*CustomCommand {
 	return com
 }
 
-func CreateCommands(irc *BotInfo, com map[string]*CustomCommand, quotes map[string]string, badwords BadWord, goofs Goof, usermessage string, database *sql.DB, line string) (map[string]*CustomCommand, map[string]string, []string) {
-	if strings.Contains(usermessage, "!editcom") || strings.Contains(usermessage, "!addcom") || strings.Contains(usermessage, "!setperm") || strings.Contains(usermessage, "!delcom") {
+func CreateCommands(irc *BotInfo, usermessage string, potentialCommand string, com map[string]*CustomCommand, quotes map[string]string, badwords BadWord, goofs Goof, database *sql.DB, line string) (map[string]*CustomCommand, map[string]string, []string) {
+
+	if potentialCommand == "!editcom" || potentialCommand == "!addcom" || potentialCommand == "!setperm" || potentialCommand == "!delcom" {
 		com = CommandOperations(usermessage)
 	}
 
-	if strings.Contains(usermessage, "!edittimed") || strings.Contains(usermessage, "!addtimed") {
+	if potentialCommand == "!edittimed" || potentialCommand == "!addtimed" {
 		TimedCommandOperations(usermessage)
 	}
 
 	// Check if user typed in !addgoof in the chat
-	checkForGoof := strings.Contains(usermessage, "!addgoof")
-	if checkForGoof == true {
+	if potentialCommand == "!addgoof" {
 		// Split data to separate username from value to use as new goof
 		GoofSplit := strings.Split(usermessage, " ")
 		GoofString := string(GoofSplit[1])
@@ -97,8 +109,7 @@ func CreateCommands(irc *BotInfo, com map[string]*CustomCommand, quotes map[stri
 	}
 
 	// Check if usermessage has !addquote in it
-	CheckForAddQuote := strings.Contains(usermessage, "!addquote")
-	if CheckForAddQuote == true {
+	if potentialCommand == "!addgoof" {
 		// Check if user is moderator or broadcaster
 		if CheckUserStatus(line, "moderator", irc) == "true" {
 			quotes = AddQuote(irc, line, usermessage, irc.BotName)
@@ -113,35 +124,27 @@ func CreateCommands(irc *BotInfo, com map[string]*CustomCommand, quotes map[stri
 	return com, quotes, goofs.GoofSlice
 }
 
-func DefaultCommands(irc *BotInfo, username string, usermessage string, line string, com map[string]*CustomCommand, quotes map[string]string, badwords BadWord, goofs Goof, permUsers []string, giveawayEntryTerm string, giveawayUsers []string, database *sql.DB) {
+func DefaultCommands(irc *BotInfo, username string, usermessage string, potentialCommand string, line string, com map[string]*CustomCommand, quotes map[string]string, badwords BadWord, goofs Goof, permUsers []string, database *sql.DB) {
 
 	// Check if a user is moderator or broadcaster before checking conditions for multiple commands.
 	if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
-		if strings.Contains(usermessage, "!settitle") {
+		if potentialCommand == "!settitle" {
 			changeTitleSplit := strings.Split(usermessage, " ")
 			PostStreamData(irc, irc.conn, irc.ChannelName, "title", changeTitleSplit[1:])
 		}
 
-		if strings.Contains(usermessage, "!setgame") {
+		if potentialCommand == "!setgame" {
 			changeGameSplit := strings.Split(usermessage, " ")
 			PostStreamData(irc, irc.conn, irc.ChannelName, "game", changeGameSplit[1:])
 		}
 
-		if strings.Contains(usermessage, "!newgiveaway") {
-			giveawaySplit := strings.Split(usermessage, " ")
-			giveawayEntryTerm = giveawaySplit[1]
-
-			BotSendMsg(irc, "A new giveaway has started! Type '"+giveawayEntryTerm+"' to enter!")
-
-		}
-
-		if strings.Contains(usermessage, "!givepoints") {
+		if potentialCommand == "!givepoints" {
 			splitMessage := strings.Split(usermessage, " ")
 			pointsToGive, _ := strconv.Atoi(splitMessage[2])
 			GivePoints(database, username, pointsToGive)
 		}
 
-		if strings.Contains(usermessage, "!caster") {
+		if potentialCommand == "!caster" {
 			casterSplit := strings.Split(usermessage, " ")
 			casterTargetMessage := strings.Replace(irc.CasterMessage, "{target}", casterSplit[1], -1)
 			BotSendMsg(irc, casterTargetMessage)
@@ -153,7 +156,7 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 
 		}
 
-		if strings.Contains(usermessage, "!permit") {
+		if potentialCommand == "!permit" {
 			permitSplit := strings.Split(usermessage, " ")
 			permUsers = append(permUsers, permitSplit[1])
 			BotSendMsg(irc, permitSplit[1]+" can now post one link in chat.")
@@ -167,13 +170,6 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, line str
 		pointsTargetMessage = strings.Replace(pointsTargetMessage, "{value}", pointString, -1)
 		pointsTargetMessage = ReplaceStrings(pointsTargetMessage, "{currency}", irc.PointsName)
 		BotSendMsg(irc, pointsTargetMessage)
-	}
-
-	if strings.Contains(usermessage, "!raffle") {
-		participating := make(map[string]chan int)
-		go RafflePoints(irc, username, usermessage, participating)
-		newUser := <-participating[username]
-		fmt.Println(newUser)
 	}
 
 	if usermessage == "!game" {

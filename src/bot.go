@@ -31,6 +31,8 @@ type BotInfo struct {
 	RouletteEnabled             bool
 	RouletteWinMessages         []string
 	RouletteLossMessages        []string
+	EightBallEnabled            bool
+	EightBallMessages           []string
 	conn                        net.Conn
 	LetModeratorsUseAllCommands bool
 	CasterMessage               string
@@ -47,18 +49,6 @@ type BotInfo struct {
 	HydrateMessage              string
 	SendMessages                bool
 	PastebinKey                 string
-}
-
-type CustomCommand struct {
-	CommandName       string
-	CommandResponse   string
-	CommandPermission string
-}
-
-type CustomTimedCommand struct {
-	TimedName     string
-	TimedResponse string
-	Timer         time.Duration
 }
 
 type BadWord struct {
@@ -110,6 +100,8 @@ func CreateBot() *BotInfo {
 		RouletteEnabled:             genConfig.RouletteEnabled,
 		RouletteWinMessages:         genConfig.RouletteWinMessages,
 		RouletteLossMessages:        genConfig.RouletteLossMessages,
+		EightBallEnabled:            genConfig.EightBallEnabled,
+		EightBallMessages:           genConfig.EightBallMessages,
 		LetModeratorsUseAllCommands: genConfig.LetModeratorsUseAllCommands,
 		CasterMessage:               genConfig.CasterMessage,
 		LongMessageCap:              genConfig.LongMessageCap,
@@ -196,7 +188,7 @@ func InitializeDB() *sql.DB {
 }
 
 // Series of commands to do with time, like uptime.
-func TimeCommands(irc *BotInfo, TimeSetting string, channel string, name string, username string) string {
+func TimeCommands(irc *BotInfo, TimeSetting string, channel string, name string, userName string) string {
 	currentTime := time.Now()
 	dateString := currentTime.String()
 	//datesplit := strings.Split(datestring, " ")
@@ -222,7 +214,7 @@ func TimeCommands(irc *BotInfo, TimeSetting string, channel string, name string,
 				// Begin replacing single characters for time units to full words and make it nicer looking.
 				newSplit := strings.Replace(sinceSplit[0], "h", " hours, ", -1)
 				newSplit = strings.Replace(newSplit, "m", " minutes, ", -1)
-				newMessage := "@" + username + " " + newSplit + " seconds."
+				newMessage := "@" + userName + " " + newSplit + " seconds."
 
 				BotSendMsg(irc, newMessage)
 			}
@@ -240,29 +232,29 @@ func SplitChannelName(channel string) string {
 	return newChannel[1]
 }
 
-// Bans user with provided username.
+// Bans user with provided userName.
 func BanUser(irc *BotInfo, user string) {
 	fmt.Println(user, "has been banned.")
 	BotSendMsg(irc, "/ban "+user)
 }
 
-// Time out user with provided username.
+// Time out user with provided userName.
 func TimeOutUser(irc *BotInfo, user string) {
 	fmt.Println(user, "has been timed out.")
 	BotSendMsg(irc, "/timeout "+user+" 60")
 }
 
-// Purge user with provided username.
+// Purge user with provided userName.
 func PurgeUser(irc *BotInfo, user string) {
 	fmt.Println(user, "has been purged.")
 	BotSendMsg(irc, "/timeout "+user+" 1")
 }
 
 // Function to add a new quote and return a map of quotes, including new one.
-func AddQuote(irc *BotInfo, message string, usermessage string, name string) map[string]string {
+func AddQuote(irc *BotInfo, message string, userMessage string, name string) map[string]string {
 	database := InitializeDB()
 
-	quoteSplit := strings.Split(usermessage, "!addquote ")
+	quoteSplit := strings.Split(userMessage, "!addquote ")
 	currentTime := time.Now()
 	newTime := currentTime.Format("2006-01-02")
 	newQuote := quoteSplit[1] + " -- " + newTime
@@ -292,10 +284,10 @@ func AddQuote(irc *BotInfo, message string, usermessage string, name string) map
 }
 
 // Function to add a new goof and return a slice of goofs, including new one.
-func AddGoof(usermessage string) Goof {
+func AddGoof(userMessage string) Goof {
 	database := InitializeDB()
-	// Split data to separate username from value to use as new goof
-	GoofSplit := strings.Split(usermessage, " ")
+	// Split data to separate userName from value to use as new goof
+	GoofSplit := strings.Split(userMessage, " ")
 	GoofString := string(GoofSplit[1])
 	fmt.Println(GoofSplit[1])
 
@@ -356,7 +348,7 @@ func RemoveStringDuplicates(slice []string) []string {
 	}
 
 	var result []string
-	for v, _ := range m {
+	for v := range m {
 		result = append(result, v)
 	}
 	return result
@@ -364,8 +356,8 @@ func RemoveStringDuplicates(slice []string) []string {
 
 // Check to see if user is in the permitted slice
 func UserInSlice(user string, perm []string) bool {
-	for _, username := range perm {
-		if username == user {
+	for _, userName := range perm {
+		if userName == user {
 			return true
 		}
 	}
@@ -375,9 +367,9 @@ func UserInSlice(user string, perm []string) bool {
 // For sake of removing after a link is posted, iterate through the slice and get the element index
 func GetSlicePosition(user string, perm []string) int {
 	x := 0
-	for _, username := range perm {
+	for _, userName := range perm {
 		x++
-		if username == user {
+		if userName == user {
 			return x - 1
 		}
 	}
@@ -393,7 +385,7 @@ func RemoveFromSlice(index int, perm []string) []string {
 	return perm
 }
 
-func Giveaway(irc *BotInfo, username string, message string, state string, users []string, running bool) (bool, []string, string) {
+func Giveaway(irc *BotInfo, userName string, message string, state string, users []string, running bool) (bool, []string, string) {
 	var entryTerm string
 	if state == "new" {
 		running = true
@@ -408,7 +400,7 @@ func Giveaway(irc *BotInfo, username string, message string, state string, users
 
 	} else if state == "entry" {
 		if running == true {
-			users = append(users, username)
+			users = append(users, userName)
 		}
 	}
 
@@ -486,7 +478,7 @@ func main() {
 	   In the case of games like a raffle, this is unoptimal, because there are variables for raffles hanging around in the for loop
 	   even if the user turns raffles off in config.toml. */
 
-	gameRunning := true
+	gameRunning := false
 
 	//var allPoints []int
 	var allUsers []string
@@ -494,6 +486,8 @@ func main() {
 	raffleRunning := false
 	// Prepare variable for users permitted to post links.
 	var permUsers []string
+
+	allDuels := make(map[string]*Duel)
 
 	// Prepare variables needed for giveaways.
 	giveawayEntryTerm := "giveawayisnil"
@@ -515,17 +509,23 @@ func main() {
 
 			// Parse the data received from each chat message into something readable.
 		} else if strings.Contains(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName) {
-			userdata := strings.Split(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName)
-			splitdata := strings.Split(userdata[0], "@")
-			username := splitdata[2]
-			usermessage := strings.Replace(userdata[1], " :", "", 1)
+			userData := strings.Split(line, ".tmi.twitch.tv PRIVMSG "+irc.ChannelName)
+			splitData := strings.Split(userData[0], "@")
+			userName := splitData[2]
+			userMessage := strings.Replace(userData[1], " :", "", 1)
+			userMessageSplit := strings.Split(userMessage, " ")
+			potentialCommand := userMessageSplit[0]
 
 			// Display the whole cleaned up message
-			fmt.Println(username + ": " + usermessage)
+			fmt.Println(userName + ": " + userMessage)
 
 			if irc.GamesEnabled == true {
-				if strings.Contains(usermessage, "raffle") {
-					allUsers, allPoints, gameRunning, raffleRunning = GameRoot(irc, username, usermessage, "raffle", line, allUsers, allPoints, raffleRunning, gameRunning)
+				if strings.Contains(userMessage, "raffle") {
+					allUsers, allPoints, gameRunning, raffleRunning, _ = GameRoot(irc, userName, userMessage, "raffle", line, allUsers, allPoints, raffleRunning, gameRunning, allDuels)
+				} else if strings.Contains(userMessage, "!8ball") {
+					_, _, _, _, _ = GameRoot(irc, userName, userMessage, "8ball", line, allUsers, allPoints, raffleRunning, gameRunning, allDuels)
+				} else if strings.Contains(userMessage, "!duel") {
+					_, _, _, _, allDuels = GameRoot(irc, userName, userMessage, "duel", line, allUsers, allPoints, raffleRunning, gameRunning, allDuels)
 				}
 			}
 
@@ -533,50 +533,50 @@ func main() {
 			If they are, run CreateCommands, which updates these values for the chat to use. This may not be the optimal solution,
 			but it makes it so normal users' messages aren't checked. */
 			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
-				com, quotes, goofs.GoofSlice = CreateCommands(irc, com, quotes, badwords, goofs, usermessage, database, line)
+				com, quotes, goofs.GoofSlice = CreateCommands(irc, userMessage, potentialCommand, com, quotes, badwords, goofs, database, line)
 			}
 
 			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
-				if strings.Contains(usermessage, "!newgiveaway") {
-					giveawayRunning, giveawayUsers, giveawayEntryTerm = Giveaway(irc, username, usermessage, "new", giveawayUsers, false)
-				} else if usermessage == "!endgiveaway" {
+				if userMessage == "!newgiveaway" {
+					giveawayRunning, giveawayUsers, giveawayEntryTerm = Giveaway(irc, userName, userMessage, "new", giveawayUsers, false)
+				} else if userMessage == "!endgiveaway" {
 					if giveawayRunning == true {
-						giveawayRunning, giveawayUsers, _ = Giveaway(irc, username, usermessage, "end", giveawayUsers, true)
+						giveawayRunning, giveawayUsers, _ = Giveaway(irc, userName, userMessage, "end", giveawayUsers, true)
 					} else {
 						BotSendMsg(irc, "Giveaway is not running.")
 					}
 				}
 			}
-			if usermessage == giveawayEntryTerm {
+			if userMessage == giveawayEntryTerm {
 				if giveawayRunning == true {
-					_, giveawayUsers, _ = Giveaway(irc, username, usermessage, "entry", giveawayUsers, true)
+					_, giveawayUsers, _ = Giveaway(irc, userName, userMessage, "entry", giveawayUsers, true)
 				}
 			}
 
 			// Default commands for the bot are put in DefaultCommands. Things like !caster, !permit etc can be seen there.
-			go DefaultCommands(irc, username, usermessage, line, com, quotes, badwords, goofs, permUsers, giveawayEntryTerm, giveawayUsers, database)
+			go DefaultCommands(irc, userName, userMessage, potentialCommand, line, com, quotes, badwords, goofs, permUsers, database)
 
-			go UserCommands(irc, username, usermessage, line, com, quotes, badwords, goofs, permUsers, giveawayEntryTerm, giveawayUsers, database)
+			go UserCommands(irc, userName, userMessage, line, com, quotes, badwords, goofs, permUsers, giveawayEntryTerm, giveawayUsers, database)
 
 		} else if strings.Contains(line, "USERNOTICE") {
 			currenttime := time.Now()
 			datestring := currenttime.String()
 			datesplit := strings.Split(datestring, " ")
-			// user variables used to split the twitch tag string to get the username
+			// user variables used to split the twitch tag string to get the userName
 			if strings.Contains(line, "msg-param-sub-plan") {
 				if irc.RespondToSubs == true {
 					var subsCurrentStream []string
-					username1 := strings.Split(line, "display-name=")
-					username2 := strings.Split(username1[1], ";")
+					userName1 := strings.Split(line, "display-name=")
+					userName2 := strings.Split(userName1[1], ";")
 
 					// Thank the user for subbing
-					botSubResponse := strings.Replace(irc.SubResponse, "target", username2[0], -1)
+					botSubResponse := strings.Replace(irc.SubResponse, "target", userName2[0], -1)
 					BotSendMsg(irc, botSubResponse)
 					// Append new sub to a list of new subs in current session for logging
 					if irc.MakeLog == true {
-						subsCurrentStream = append(subsCurrentStream, username2[0])
+						subsCurrentStream = append(subsCurrentStream, userName2[0])
 						logLocation := "logs/NewSubs " + datesplit[0] + ".txt"
-						logMessage := username2[0] + "\n"
+						logMessage := userName2[0] + "\n"
 						WriteToLog(logLocation, logMessage)
 					}
 				}

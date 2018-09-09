@@ -8,9 +8,17 @@ import (
 	"time"
 )
 
-type Raffle struct {
-	allUsers  []string
-	allPoints []int
+type Duel struct {
+	Target      string
+	TotalPoints int
+}
+
+// This func creates the two pair value to store both the target and points on the line.
+func MakeDuelValuePair(target string, points int) *Duel {
+	return &Duel{
+		Target:      target,
+		TotalPoints: points,
+	}
 }
 
 func ReplaceStrings(wholeString string, old string, new string) string {
@@ -19,7 +27,7 @@ func ReplaceStrings(wholeString string, old string, new string) string {
 }
 
 func RandomInt(min int, max int) int {
-	rand.Seed(time.Now().Unix())
+	rand.Seed(time.Now().UnixNano())
 	return min + rand.Intn(max-min)
 }
 
@@ -111,7 +119,7 @@ func Roulette(irc *BotInfo, username string, message string) {
 }
 
 // GameRoot will serve as a way to check if a game is enabled in config.toml before it is run when a user calls it.
-func GameRoot(irc *BotInfo, username string, usermessage string, game string, line string, allUsers []string, allPoints []int, gameRunning bool, raffleRunning bool) ([]string, []int, bool, bool) {
+func GameRoot(irc *BotInfo, username string, usermessage string, game string, line string, allUsers []string, allPoints []int, gameRunning bool, raffleRunning bool, allDuels map[string]*Duel) ([]string, []int, bool, bool, map[string]*Duel) {
 
 	if strings.Contains(usermessage, "!roulette") {
 		//go GameRoot(irc, username, usermessage, "roulette")
@@ -123,9 +131,7 @@ func GameRoot(irc *BotInfo, username string, usermessage string, game string, li
 
 				if strings.Contains(usermessage, "!raffle") {
 					// Prepare multi-directional channels, needed to remain values of points and users throughout main for loop iteration.
-					userIn := make(chan []string)
 					userOut := make(chan []string)
-					pointsIn := make(chan []int)
 					pointsOut := make(chan []int)
 					var points int
 					var err error
@@ -154,7 +160,7 @@ func GameRoot(irc *BotInfo, username string, usermessage string, game string, li
 							BotSendMsg(irc, "@"+username+", you've submitted more points then you actually have.")
 						} else {
 							// Run in new goroutine, use channels to keep the data of allUsers and allPoints throughout main for loop iteration.
-							go func(irc *BotInfo, username string, points int, userIn <-chan []string, userOut chan []string, pointsIn <-chan []int, pointsOut chan []int) {
+							go func(irc *BotInfo, username string, points int, userOut chan []string, pointsOut chan []int) {
 								// If user is already in allUsers, meaning they are trying to enter the raffle twice, stop submission.
 								allUsers = append(allUsers, username)
 								userOut <- allUsers
@@ -162,7 +168,7 @@ func GameRoot(irc *BotInfo, username string, usermessage string, game string, li
 								allPoints = append(allPoints, points)
 								pointsOut <- allPoints
 
-							}(irc, username, points, userIn, userOut, pointsIn, pointsOut)
+							}(irc, username, points, userOut, pointsOut)
 							fmt.Println(<-userOut, <-pointsOut)
 						}
 					}
@@ -185,9 +191,7 @@ func GameRoot(irc *BotInfo, username string, usermessage string, game string, li
 					for _, v := range allUsers {
 						x++
 						if v != winner {
-							fmt.Println("X:", x)
 							getSubmission := allPoints[x-1]
-							fmt.Println("Submission:", getSubmission)
 							currentPoints := GetUserPoints(username)
 							newPoints := currentPoints - getSubmission
 							UpdateUserPoints(v, newPoints)
@@ -215,6 +219,118 @@ func GameRoot(irc *BotInfo, username string, usermessage string, game string, li
 				}
 			}
 		}
+	} else if game == "8ball" {
+		if irc.EightBallEnabled == true {
+			randomElement := RandomInt(0, len(irc.EightBallMessages))
+			response := irc.EightBallMessages[randomElement]
+			BotSendMsg(irc, "@"+username+", the eight ball says... "+response)
+		}
+	} else if game == "duel" {
+		var points int
+		var err error
+		messageSplit := strings.Split(usermessage, " ")
+		duelType := messageSplit[1]
+		target := messageSplit[2]
+		pointsString := messageSplit[3]
+		currentPointsInDatabase := GetUserPoints(username)
+		if pointsString == "all" {
+			points = GetUserPoints(username)
+		} else {
+			points, err = strconv.Atoi(pointsString)
+			if err != nil {
+				BotSendMsg(irc, "@"+username+", please type a valid number or 'all' to use all points.")
+			}
+		}
+		if points == 0 {
+
+		} else {
+			if points > currentPointsInDatabase {
+				BotSendMsg(irc, "@"+username+", you are using more "+irc.PointsName+" then you currently have.")
+			} else {
+				if duelType == "start" {
+					BotSendMsg(irc, "@"+username+" has just started a duel. @"+target+", do you accept? Type: !duel accept "+username+" if so, or type: !duel reject "+username)
+					if target == username {
+						BotSendMsg(irc, "You can't duel yourself, you silly goose!")
+					} else {
+						allDuels[username] = MakeDuelValuePair(target, points)
+						for k, v := range allDuels {
+							fmt.Println(k, v.Target, v.TotalPoints)
+						}
+					}
+				} else if duelType == "accept" {
+					// In this case, someone accepts duel, so the 'target' is the initial starter of the duel, which is the key of the map.
+					for k, v := range allDuels {
+						if k == target {
+							// In the allDuels map, if the challenger who accepted the duel is in the value, all conditions are met and the duel can begin.
+							if v.Target == username {
+								fmt.Println("Reached before func.")
+								go func(irc *BotInfo, username string, target string) {
+									challengerRoll := RandomInt(1, 100)
+									time.Sleep(1 * time.Second)
+									targetRoll := RandomInt(1, 100)
+									var winner string
+									var loser string
+
+									fmt.Println("Challenger:", challengerRoll)
+									fmt.Println("Target:", targetRoll)
+
+									if challengerRoll > targetRoll {
+										if challengerRoll == 100 {
+											BotSendMsg(irc, "OUCH! "+target+" just rolled a 100, a critical hit against "+username+". "+target+" has won!")
+										} else {
+											BotSendMsg(irc, target+" has won the duel with a roll of: "+strconv.Itoa(challengerRoll))
+										}
+										winner = target
+										loser = username
+									} else if targetRoll > challengerRoll {
+										if targetRoll == 100 {
+											BotSendMsg(irc, "OUCH! "+username+" just rolled a 100, a critical hit against "+target+". "+username+" has won!")
+										} else {
+											BotSendMsg(irc, username+" has won the duel with a roll of: "+strconv.Itoa(targetRoll))
+										}
+										winner = username
+										loser = target
+									} else if challengerRoll == targetRoll {
+										if challengerRoll == 100 {
+											BotSendMsg(irc, "UNREAL! Both "+username+" and "+target+" just rolled 100's. For your efforts, you both win twice the prize pool!")
+											winner = "both"
+										} else if challengerRoll == 1 {
+											BotSendMsg(irc, "A colossal disaster... both "+username+" and "+target+" just rolled 1's. You both lose all your points.")
+											winner = "none"
+										}
+
+									}
+
+									if winner == "none" {
+										UpdateUserPoints(target, 0)
+										UpdateUserPoints(username, 0)
+									} else if winner == "both" {
+										challengerPoints := GetUserPoints(target)
+										challengedPoints := GetUserPoints(username)
+
+										challengerTotal := challengerPoints + (v.TotalPoints * 2)
+										challengedTotal := challengedPoints + (v.TotalPoints * 2)
+										UpdateUserPoints(target, challengerTotal)
+										UpdateUserPoints(username, challengedTotal)
+									} else {
+										winnerPoints := GetUserPoints(winner)
+										loserPoints := GetUserPoints(loser)
+										UpdateUserPoints(winner, winnerPoints+v.TotalPoints)
+										UpdateUserPoints(loser, loserPoints-v.TotalPoints)
+									}
+
+								}(irc, username, target)
+								delete(allDuels, k)
+							} else {
+								BotSendMsg(irc, "@"+username+", there is no duel running with you.")
+							}
+						} else {
+							BotSendMsg(irc, "@"+username+", there is no duel running with that individual.")
+						}
+					}
+				}
+			}
+		}
 	}
-	return allUsers, allPoints, gameRunning, raffleRunning
+	return allUsers, allPoints, gameRunning, raffleRunning, allDuels
 }
