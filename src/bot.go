@@ -534,9 +534,7 @@ func main() {
 			but it makes it so normal users' messages aren't checked. */
 			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 				com, quotes, goofs.GoofSlice = CreateCommands(irc, userMessage, potentialCommand, com, quotes, badwords, goofs, database, line)
-			}
 
-			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 				if userMessage == "!newgiveaway" {
 					giveawayRunning, giveawayUsers, giveawayEntryTerm = Giveaway(irc, userName, userMessage, "new", giveawayUsers, false)
 				} else if userMessage == "!endgiveaway" {
@@ -547,6 +545,7 @@ func main() {
 					}
 				}
 			}
+
 			if userMessage == giveawayEntryTerm {
 				if giveawayRunning == true {
 					_, giveawayUsers, _ = Giveaway(irc, userName, userMessage, "entry", giveawayUsers, true)

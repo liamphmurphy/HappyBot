@@ -43,17 +43,15 @@ func CommandOperations(chatmessage string) map[string]*CustomCommand {
 			fmt.Println(err)
 		}
 		rows.Exec(comNewValue, comKey)
-	}
 
-	if comSplit[0] == "!addcom" {
+	} else if comSplit[0] == "!addcom" {
 		rows, err := database.Prepare("INSERT INTO commands (CommandName, CommandResponse) VALUES(?,?)")
 		if err != nil {
 			fmt.Println(err)
 		}
 		rows.Exec(comKey, comNewValue)
-	}
 
-	if comSplit[0] == "!setperm" {
+	} else if comSplit[0] == "!setperm" {
 		rows, err := database.Prepare("UPDATE commands SET CommandPermission = ? WHERE CommandName = ?")
 		if err != nil {
 			fmt.Println(err)
@@ -84,9 +82,8 @@ func CreateCommands(irc *BotInfo, usermessage string, potentialCommand string, c
 
 	if potentialCommand == "!editcom" || potentialCommand == "!addcom" || potentialCommand == "!setperm" || potentialCommand == "!delcom" {
 		com = CommandOperations(usermessage)
-	}
 
-	if potentialCommand == "!edittimed" || potentialCommand == "!addtimed" {
+	} else if potentialCommand == "!edittimed" || potentialCommand == "!addtimed" {
 		TimedCommandOperations(usermessage)
 	}
 
@@ -106,10 +103,7 @@ func CreateCommands(irc *BotInfo, usermessage string, potentialCommand string, c
 		// Append to the slice in this run session to make it useable right away
 		goofs.GoofSlice = append(goofs.GoofSlice, GoofString)
 
-	}
-
-	// Check if usermessage has !addquote in it
-	if potentialCommand == "!addgoof" {
+	} else if potentialCommand == "!addquote" { // Check if usermessage has !addquote in it
 		// Check if user is moderator or broadcaster
 		if CheckUserStatus(line, "moderator", irc) == "true" {
 			quotes = AddQuote(irc, line, usermessage, irc.BotName)
@@ -131,32 +125,26 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, potentia
 		if potentialCommand == "!settitle" {
 			changeTitleSplit := strings.Split(usermessage, " ")
 			PostStreamData(irc, irc.conn, irc.ChannelName, "title", changeTitleSplit[1:])
-		}
 
-		if potentialCommand == "!setgame" {
+		} else if potentialCommand == "!setgame" {
 			changeGameSplit := strings.Split(usermessage, " ")
 			PostStreamData(irc, irc.conn, irc.ChannelName, "game", changeGameSplit[1:])
-		}
 
-		if potentialCommand == "!givepoints" {
+		} else if potentialCommand == "!givepoints" {
 			splitMessage := strings.Split(usermessage, " ")
 			pointsToGive, _ := strconv.Atoi(splitMessage[2])
 			GivePoints(database, username, pointsToGive)
-		}
 
-		if potentialCommand == "!caster" {
+		} else if potentialCommand == "!caster" {
 			casterSplit := strings.Split(usermessage, " ")
 			casterTargetMessage := strings.Replace(irc.CasterMessage, "{target}", casterSplit[1], -1)
 			BotSendMsg(irc, casterTargetMessage)
-		}
 
-		if usermessage == "!listcoms" {
+		} else if usermessage == "!listcoms" {
 			paste := PostPasteBin(irc.PastebinKey, com)
 			BotSendMsg(irc, "Command list: "+paste)
 
-		}
-
-		if potentialCommand == "!permit" {
+		} else if potentialCommand == "!permit" {
 			permitSplit := strings.Split(usermessage, " ")
 			permUsers = append(permUsers, permitSplit[1])
 			BotSendMsg(irc, permitSplit[1]+" can now post one link in chat.")
@@ -183,10 +171,6 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, potentia
 		} else {
 			BotSendMsg(irc, "@"+username+", stream is offline.")
 		}
-	}
-
-	if irc.GamesEnabled == true {
-
 	}
 
 	for k, v := range quotes {
