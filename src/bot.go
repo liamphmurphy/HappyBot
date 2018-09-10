@@ -595,7 +595,7 @@ func main() {
 			}
 
 			// Default commands for the bot are put in DefaultCommands. Things like !caster, !permit etc can be seen there.
-			go DefaultCommands(irc, userName, userMessage, potentialCommand, warnMap, line, com, quotes, badwords, goofs, permUsers, database)
+			permUsers, warnMap = DefaultCommands(irc, userName, userMessage, potentialCommand, warnMap, line, com, quotes, badwords, goofs, permUsers, database)
 
 			go UserCommands(irc, userName, userMessage, line, com, quotes, badwords, goofs, permUsers, giveawayEntryTerm, giveawayUsers, database)
 

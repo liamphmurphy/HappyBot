@@ -145,7 +145,9 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, potentia
 
 		} else if potentialCommand == "!permit" {
 			permitSplit := strings.Split(usermessage, " ")
+			fmt.Println(permitSplit[1])
 			permUsers = append(permUsers, permitSplit[1])
+			fmt.Println(permUsers)
 			BotSendMsg(irc, permitSplit[1]+" can now post one link in chat.")
 		}
 	}
@@ -206,7 +208,6 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, potentia
 	// Check if user set CheckLongMessageCap in config.toml to true, if so, run
 	if irc.CheckLongMessageCap == true {
 		if len(usermessage) > irc.LongMessageCap {
-			fmt.Println("Very long message detected.")
 			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 			} else {
 				if irc.WarnUsersForLongMsg == true {
@@ -240,7 +241,6 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, potentia
 					// Check if user is in the permitted slice
 					userCheck := UserInSlice(username, permUsers)
 					// If user is a moderator / broadcaster, just let them post link
-					fmt.Println("user check:", userCheck)
 					if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 					} else if userCheck == true { // If not a moderator / broadcaster, but is in the permitted slice, let them post link then remove them
 						position := GetSlicePosition(username, permUsers)
