@@ -1,25 +1,10 @@
 ChannelName = "#"
 ServerName = "irc.chat.twitch.tv:6667"
 # Oauth from Twitch here
-BotOAuth = "oauth:"
+BotOAuth = "oauth:" 
 BotName = ""
 
 WebAppGUIEnabled = false #If true, server / GUI component of HappyBot will be enabled.
-
-##### POINTS #####
-PointsSystemEnabled = true
-PointsName = "points" #Use this to change the command users can type to see the points they have. Examples: !euros, !gold
-PointsValueModifier = 3 # Each user will get this amount of points per increment.
-PointsIncrementTime = 120 # How many seconds the bot should hand out points in seconds.
-PointsMessage = "@{target}, you have {value} {currency}." # Use {target} to refer to user, and {value} to the points amount.
-
-##### GAME PROPERTIES #####
-GamesEnabled = true 
-
-## Roulette ##
-RouletteEnabled = true
-RouletteWinMessages = ["Dang, it's your lucky day! @{target} just got {value} {currency}!", "A true display of valor. @{target} just won {value} {currency}!"] # Write as many possible win statements here. The bot will choose a random one! :)
-RouletteLossMessages = ["A sad day indeed... {target} just lost {value} {currency}.", "Luck was not on the cards today. @{target} just lost {value} {currency}."]
 
 ##### CHAT PROPERTIES #####
 LetModeratorsUseAllCommands = true # This allows a moderator to use any command, including broadcaster specific commands.
@@ -28,6 +13,9 @@ LetModeratorsUseAllCommands = true # This allows a moderator to use any command,
 CasterMessage = "Follow @{target} for some awesome content! https://www.twitch.tv/{target}"
 
 CheckLongMessageCap = true
+WarnUsersForLongMsg = true # Implements warning system. Users will still be purged for one second.
+WarnAmountLongMsg = 2 # Once user is purged this many times, they will be timed out.
+WarnTimeoutMsgLength = 30 # In minutes, how long user should be timed out once they hit amount.
 LongMessageCap = 300
 
 StreamerTimeToggle = true # Toggle whether !time, !uptime is enabled or not
@@ -38,8 +26,36 @@ RespondToSubs = true
 SubResponse = "thanks for subscribing!"
 
 PurgeForLinks = true
-LinkChecks = [".com", ".net", ".org", ".tv"]
+WarnUserForLinks = true # Implements warning system. Users will still be purged for one second.
+WarnAmountLinks = 2 # Once user is purged this many times, they will be timed out.
+WarnTimeoutLinkLength = 30 # In minutes, how long user should be timed out once they hit amount.
+LinkChecks = [".com", ".net", ".org", ".tv", ".gov", ".io"]
 
 HydrateOn = false
 HydrateTime = 30 # In minutes, how often you want to be reminded to hydrate!
 HydrateMessage = "It's hydrating time!"
+
+##### POINTS #####
+PointsSystemEnabled = true
+PointsName = "points" #Use this to change the command users can type to see the points they have. Examples: !euros, !gold
+PointsValueModifier = 3 # Each user will get this amount of points per increment.
+PointsIncrementTime = 300 # How many seconds the bot should hand out points in seconds.
+PointsMessage = "@{target}, you have {value} {currency}." # Use {target} to refer to user, and {value} to the points amount.
+
+##### GAME PROPERTIES #####
+GamesEnabled = true # If set to false, none of the games will work.
+
+## Duel ##
+DuelsEnabled = true
+
+## Roulette ##
+RouletteEnabled = true
+RouletteWinMessages = ["Dang, it's your lucky day! @{target} just got {value} {currency}!", "A true display of valor. @{target} just won {value} {currency}!"] # Write as many possible win statements here. The bot will choose a random one! :)
+RouletteLossMessages = ["A sad day indeed... {target} just lost {value} {currency}.", "Luck was not on the cards today. @{target} just lost {value} {currency}."]
+
+## Eight Ball ##
+EightBallEnabled = true
+EightBallMessages = ["It is certain.", "It is decidedly so.", "Without a doubt.", "Yes - definitely.", "You may rely on it.", "As I see it, yes.",
+                    "Most likely.", "Outlook good.", "Yes.", "Signs point to yes.", "Reply hazy, try again.", "Ask again later.", "Better not tell you now.",
+                    "Cannot predict now.", "Concentrate and ask again.", "Don't count on it.", "My reply is no.", "My sources say no.", "Outlook not so good.",
+                    "Very doubtful."]
