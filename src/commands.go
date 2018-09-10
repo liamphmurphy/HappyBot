@@ -118,8 +118,7 @@ func CreateCommands(irc *BotInfo, usermessage string, potentialCommand string, c
 	return com, quotes, goofs.GoofSlice
 }
 
-func DefaultCommands(irc *BotInfo, username string, usermessage string, potentialCommand string, line string, com map[string]*CustomCommand, quotes map[string]string, badwords BadWord, goofs Goof, permUsers []string, database *sql.DB) {
-
+func DefaultCommands(irc *BotInfo, username string, usermessage string, potentialCommand string, warnMap map[string]*Warning, line string, com map[string]*CustomCommand, quotes map[string]string, badwords BadWord, goofs Goof, permUsers []string, database *sql.DB) ([]string, map[string]*Warning) {
 	// Check if a user is moderator or broadcaster before checking conditions for multiple commands.
 	if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 		if potentialCommand == "!settitle" {
@@ -146,7 +145,9 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, potentia
 
 		} else if potentialCommand == "!permit" {
 			permitSplit := strings.Split(usermessage, " ")
+			fmt.Println(permitSplit[1])
 			permUsers = append(permUsers, permitSplit[1])
+			fmt.Println(permUsers)
 			BotSendMsg(irc, permitSplit[1]+" can now post one link in chat.")
 		}
 	}
@@ -204,46 +205,72 @@ func DefaultCommands(irc *BotInfo, username string, usermessage string, potentia
 		TimeCommands(irc, "Uptime", irc.ChannelName, irc.BotName, username)
 	}
 
-	// Check if user set MakeLog in config.toml to true, if so, run
-	if irc.MakeLog == true {
-		// Use current date to mark which day the chat log is for
-		currenttime := time.Now()
-		datestring := currenttime.String()
-		datesplit := strings.Split(datestring, " ")
-		loglocation := "logs/chat/" + datesplit[0] + ".txt"
-		logmessage := (username + ": " + usermessage + "\n")
-		WriteToLog(loglocation, logmessage)
-	}
-
 	// Check if user set CheckLongMessageCap in config.toml to true, if so, run
 	if irc.CheckLongMessageCap == true {
 		if len(usermessage) > irc.LongMessageCap {
-			fmt.Println("Very long message detected.")
-			PurgeUser(irc, username)
-			BotSendMsg(irc, "@"+username+" please shorten your message")
+			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
+			} else {
+				if irc.WarnUsersForLongMsg == true {
+					_, exists := warnMap[username]
+					if exists == true {
+						for k, v := range warnMap {
+							if k == username {
+								if v.Reason == "longmsg" {
+									totalAmount := v.Amount + 1
+									warnMap[username] = MakeWarning(totalAmount, "longmsg")
+									if totalAmount == irc.WarnAmountLinks {
+										TimeOutUser(irc, username, irc.WarnTimeoutLinkLength*60)
+									}
+								}
+							}
+						}
+					} else if exists == false {
+						warnMap[username] = MakeWarning(0, "link")
+					}
+				}
+				PurgeUser(irc, username)
+				BotSendMsg(irc, "@"+username+" please shorten your message")
 
+			}
 		}
-	}
 
-	// For each value in LinkChecks array in config.toml, check whether to purge user or not.
-	for _, v := range irc.LinkChecks {
-		if strings.Contains(usermessage, v) {
-			if irc.PurgeForLinks == true {
-
-				// Check if user is in the permitted slice
-				userCheck := UserInSlice(username, permUsers)
-				// If user is a moderator / broadcaster, just let them post link
-				if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
-					fmt.Println("Link permitted.")
-				} else if userCheck == true { // If not a moderator / broadcaster, but is in the permitted slice, let them post link then remove them
-					position := GetSlicePosition(username, permUsers)
-					permUsers = RemoveFromSlice(position, permUsers)
-				} else { // If none of the above is true, purge user
-					PurgeUser(irc, username)
+		// For each value in LinkChecks array in config.toml, check whether to purge user or not.
+		if irc.PurgeForLinks == true {
+			for _, v := range irc.LinkChecks {
+				if strings.Contains(usermessage, v) {
+					// Check if user is in the permitted slice
+					userCheck := UserInSlice(username, permUsers)
+					// If user is a moderator / broadcaster, just let them post link
+					if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
+					} else if userCheck == true { // If not a moderator / broadcaster, but is in the permitted slice, let them post link then remove them
+						position := GetSlicePosition(username, permUsers)
+						permUsers = RemoveFromSlice(position, permUsers)
+					} else if userCheck == false { // If none of the above is true, purge user
+						PurgeUser(irc, username)
+						if irc.WarnUserForLinks == true {
+							_, exists := warnMap[username]
+							if exists == true {
+								for k, v := range warnMap {
+									if k == username {
+										if v.Reason == "link" {
+											totalAmount := v.Amount + 1
+											warnMap[username] = MakeWarning(totalAmount, "link")
+											if totalAmount == irc.WarnAmountLinks {
+												TimeOutUser(irc, username, irc.WarnTimeoutLinkLength*60)
+											}
+										}
+									}
+								}
+							} else if exists == false {
+								warnMap[username] = MakeWarning(0, "link")
+							}
+						}
+					}
 				}
 			}
 		}
 	}
+	return permUsers, warnMap
 }
 
 func UserCommands(irc *BotInfo, username string, usermessage string, line string, com map[string]*CustomCommand, quotes map[string]string, badwords BadWord, goofs Goof, permUsers []string, giveawayEntryTerm string, giveawayUsers []string, database *sql.DB) {

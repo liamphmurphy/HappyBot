@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/textproto"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,33 +23,40 @@ type BotInfo struct {
 	BotOAuth                    string
 	BotName                     string
 	WebAppGUIEnabled            bool
-	PointsSystemEnabled         bool
-	PointsName                  string
-	PointsValueModifier         int
-	PointsIncrementTime         time.Duration
-	PointsMessage               string
-	GamesEnabled                bool
-	RouletteEnabled             bool
-	RouletteWinMessages         []string
-	RouletteLossMessages        []string
-	EightBallEnabled            bool
-	EightBallMessages           []string
-	conn                        net.Conn
 	LetModeratorsUseAllCommands bool
 	CasterMessage               string
 	CheckLongMessageCap         bool
+	WarnUsersForLongMsg         bool
+	WarnAmountLongMsg           int
+	WarnTimeoutMsgLength        int
 	LongMessageCap              int
 	StreamerTimeToggle          bool
 	MakeLog                     bool
 	RespondToSubs               bool
 	SubResponse                 string
 	PurgeForLinks               bool
+	WarnUserForLinks            bool
+	WarnAmountLinks             int
+	WarnTimeoutLinkLength       int
 	LinkChecks                  []string
 	HydrateOn                   bool
 	HydrateTime                 time.Duration
 	HydrateMessage              string
 	SendMessages                bool
 	PastebinKey                 string
+	PointsSystemEnabled         bool
+	PointsName                  string
+	PointsValueModifier         int
+	PointsIncrementTime         time.Duration
+	PointsMessage               string
+	GamesEnabled                bool
+	DuelsEnabled                bool
+	RouletteEnabled             bool
+	RouletteWinMessages         []string
+	RouletteLossMessages        []string
+	EightBallEnabled            bool
+	EightBallMessages           []string
+	conn                        net.Conn
 }
 
 type BadWord struct {
@@ -60,6 +68,11 @@ type BadWord struct {
 type Goof struct {
 	GoofName  string
 	GoofSlice []string
+}
+
+type Warning struct {
+	Amount int
+	Reason string
 }
 
 func CreateBot() *BotInfo {
@@ -91,32 +104,39 @@ func CreateBot() *BotInfo {
 		BotOAuth:                    genConfig.BotOAuth,
 		BotName:                     genConfig.BotName,
 		WebAppGUIEnabled:            genConfig.WebAppGUIEnabled,
-		PointsSystemEnabled:         genConfig.PointsSystemEnabled,
-		PointsName:                  genConfig.PointsName,
-		PointsValueModifier:         genConfig.PointsValueModifier,
-		PointsIncrementTime:         genConfig.PointsIncrementTime,
-		PointsMessage:               genConfig.PointsMessage,
-		GamesEnabled:                genConfig.GamesEnabled,
-		RouletteEnabled:             genConfig.RouletteEnabled,
-		RouletteWinMessages:         genConfig.RouletteWinMessages,
-		RouletteLossMessages:        genConfig.RouletteLossMessages,
-		EightBallEnabled:            genConfig.EightBallEnabled,
-		EightBallMessages:           genConfig.EightBallMessages,
 		LetModeratorsUseAllCommands: genConfig.LetModeratorsUseAllCommands,
 		CasterMessage:               genConfig.CasterMessage,
+		CheckLongMessageCap:         genConfig.CheckLongMessageCap,
+		WarnUsersForLongMsg:         genConfig.WarnUsersForLongMsg,
+		WarnAmountLongMsg:           genConfig.WarnAmountLongMsg,
+		WarnTimeoutMsgLength:        genConfig.WarnTimeoutMsgLength,
 		LongMessageCap:              genConfig.LongMessageCap,
 		StreamerTimeToggle:          genConfig.StreamerTimeToggle,
 		MakeLog:                     genConfig.MakeLog,
 		RespondToSubs:               genConfig.RespondToSubs,
 		SubResponse:                 genConfig.SubResponse,
 		PurgeForLinks:               genConfig.PurgeForLinks,
+		WarnUserForLinks:            genConfig.WarnUserForLinks,
+		WarnAmountLinks:             genConfig.WarnAmountLinks,
+		WarnTimeoutLinkLength:       genConfig.WarnTimeoutLinkLength,
 		LinkChecks:                  genConfig.LinkChecks,
-		CheckLongMessageCap:         genConfig.CheckLongMessageCap,
 		HydrateOn:                   genConfig.HydrateOn,
 		HydrateTime:                 genConfig.HydrateTime,
 		HydrateMessage:              genConfig.HydrateMessage,
 		SendMessages:                sendMessages,
 		PastebinKey:                 genConfig.PastebinKey,
+		PointsSystemEnabled:         genConfig.PointsSystemEnabled,
+		PointsName:                  genConfig.PointsName,
+		PointsValueModifier:         genConfig.PointsValueModifier,
+		PointsIncrementTime:         genConfig.PointsIncrementTime,
+		PointsMessage:               genConfig.PointsMessage,
+		GamesEnabled:                genConfig.GamesEnabled,
+		DuelsEnabled:                genConfig.DuelsEnabled,
+		RouletteEnabled:             genConfig.RouletteEnabled,
+		RouletteWinMessages:         genConfig.RouletteWinMessages,
+		RouletteLossMessages:        genConfig.RouletteLossMessages,
+		EightBallEnabled:            genConfig.EightBallEnabled,
+		EightBallMessages:           genConfig.EightBallMessages,
 	}
 }
 
@@ -239,9 +259,9 @@ func BanUser(irc *BotInfo, user string) {
 }
 
 // Time out user with provided userName.
-func TimeOutUser(irc *BotInfo, user string) {
-	fmt.Println(user, "has been timed out.")
-	BotSendMsg(irc, "/timeout "+user+" 60")
+func TimeOutUser(irc *BotInfo, user string, length int) {
+	stringLength := strconv.Itoa(length)
+	BotSendMsg(irc, "/timeout "+user+" "+stringLength)
 }
 
 // Purge user with provided userName.
@@ -337,6 +357,13 @@ func HydrateReminder(irc *BotInfo) {
 	}
 }
 
+func MakeWarning(amount int, reason string) *Warning {
+	return &Warning{
+		Amount: amount,
+		Reason: reason,
+	}
+}
+
 func RemoveStringDuplicates(slice []string) []string {
 	m := make(map[string]bool)
 	for _, v := range slice {
@@ -391,6 +418,7 @@ func Giveaway(irc *BotInfo, userName string, message string, state string, users
 		running = true
 		messageSplit := strings.Split(message, " ")
 		entryTerm = messageSplit[1]
+		BotSendMsg(irc, "A new giveaway has started! Type "+entryTerm+" in chat to enter!")
 	} else if state == "end" {
 		running = false
 		rand.Seed(time.Now().Unix())
@@ -399,9 +427,7 @@ func Giveaway(irc *BotInfo, userName string, message string, state string, users
 		BotSendMsg(irc, winner+" is the winner!")
 
 	} else if state == "entry" {
-		if running == true {
-			users = append(users, userName)
-		}
+		users = append(users, userName)
 	}
 
 	return running, users, entryTerm
@@ -489,6 +515,9 @@ func main() {
 
 	allDuels := make(map[string]*Duel)
 
+	// WarnMap consists of all users who are warned in the key. There is a two variable value pair indicating warning amount, and what they are being warned for.
+	warnMap := make(map[string]*Warning)
+
 	// Prepare variables needed for giveaways.
 	giveawayEntryTerm := "giveawayisnil"
 	var giveawayRunning bool
@@ -519,13 +548,26 @@ func main() {
 			// Display the whole cleaned up message
 			fmt.Println(userName + ": " + userMessage)
 
+			// Check if user set MakeLog in config.toml to true, if so, run
+			if irc.MakeLog == true {
+				// Use current date to mark which day the chat log is for
+				currenttime := time.Now()
+				datestring := currenttime.String()
+				datesplit := strings.Split(datestring, " ")
+				loglocation := "logs/chat/" + datesplit[0] + ".txt"
+				logmessage := (userName + ": " + userMessage + "\n")
+				WriteToLog(loglocation, logmessage)
+			}
+
 			if irc.GamesEnabled == true {
 				if strings.Contains(userMessage, "raffle") {
 					allUsers, allPoints, gameRunning, raffleRunning, _ = GameRoot(irc, userName, userMessage, "raffle", line, allUsers, allPoints, raffleRunning, gameRunning, allDuels)
-				} else if strings.Contains(userMessage, "!8ball") {
+				} else if potentialCommand == "!8ball" {
 					_, _, _, _, _ = GameRoot(irc, userName, userMessage, "8ball", line, allUsers, allPoints, raffleRunning, gameRunning, allDuels)
-				} else if strings.Contains(userMessage, "!duel") {
+				} else if potentialCommand == "!duel" {
 					_, _, _, _, allDuels = GameRoot(irc, userName, userMessage, "duel", line, allUsers, allPoints, raffleRunning, gameRunning, allDuels)
+				} else if potentialCommand == "!roulette" {
+					_, _, _, _, _ = GameRoot(irc, userName, userMessage, "roulette", line, allUsers, allPoints, raffleRunning, gameRunning, allDuels)
 				}
 			}
 
@@ -535,7 +577,7 @@ func main() {
 			if CheckUserStatus(line, "moderator", irc) == "true" || CheckUserStatus(line, "broadcaster", irc) == "true" {
 				com, quotes, goofs.GoofSlice = CreateCommands(irc, userMessage, potentialCommand, com, quotes, badwords, goofs, database, line)
 
-				if userMessage == "!newgiveaway" {
+				if potentialCommand == "!newgiveaway" {
 					giveawayRunning, giveawayUsers, giveawayEntryTerm = Giveaway(irc, userName, userMessage, "new", giveawayUsers, false)
 				} else if userMessage == "!endgiveaway" {
 					if giveawayRunning == true {
@@ -553,7 +595,7 @@ func main() {
 			}
 
 			// Default commands for the bot are put in DefaultCommands. Things like !caster, !permit etc can be seen there.
-			go DefaultCommands(irc, userName, userMessage, potentialCommand, line, com, quotes, badwords, goofs, permUsers, database)
+			permUsers, warnMap = DefaultCommands(irc, userName, userMessage, potentialCommand, warnMap, line, com, quotes, badwords, goofs, permUsers, database)
 
 			go UserCommands(irc, userName, userMessage, line, com, quotes, badwords, goofs, permUsers, giveawayEntryTerm, giveawayUsers, database)
 
