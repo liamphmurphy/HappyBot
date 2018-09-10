@@ -1,7 +1,7 @@
 ChannelName = "#"
 ServerName = "irc.chat.twitch.tv:6667"
 # Oauth from Twitch here
-BotOAuth = "oauth:" 
+BotOAuth = "oauth:" # Go to https://twitchtokengenerator.com/quick/JbHxIHEg5X to generate an Oauth.
 BotName = ""
 
 WebAppGUIEnabled = false #If true, server / GUI component of HappyBot will be enabled.
